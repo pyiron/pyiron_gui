@@ -26,11 +26,11 @@ jobs:
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+        channel-priority: strict
         environment-file: .ci_support/environment.yml
     - name: Setup
       shell: bash -l {0}
       run: |
-        pip install --pre pyiron pyiron_base
         pip install --no-deps .
     - name: Test
       shell: bash -l {0}
