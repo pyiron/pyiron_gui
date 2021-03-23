@@ -32,6 +32,7 @@ jobs:
     - name: Test
       shell: bash -l {0}
       run: |
+        python .ci_support/pyironconfig.py
         coverage run --omit pyiron_gui/_version.py -m unittest discover tests
     - name: Coverage
       shell: bash -l {0}
