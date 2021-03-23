@@ -298,7 +298,7 @@ class ProjectBrowser:
             self._busy_check(False)
 
         buttons = []
-        len_root_path = len(self._project_root_path[:-1])
+        len_root_path = len(self._project_root_path[:-1]) if self._project_root_path is not None else 0
 
         # Home button
         button = widgets.Button(icon="home",
