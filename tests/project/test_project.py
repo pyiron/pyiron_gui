@@ -6,9 +6,37 @@ import unittest
 from os.path import dirname, join, abspath
 from os import remove
 from pyiron_base.project.generic import Project
+from pyiron_gui import activate_gui
 from pyiron_gui.project.project_browser import ProjectBrowser
 from tests.toy_job_run import ToyJob
 import ipywidgets as widgets
+
+
+class TestActivateGUI(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.file_location = dirname(abspath(__file__)).replace("\\", "/")
+        cls.project_name = join(cls.file_location, "test_activate_gui")
+        cls.project = Project(cls.project_name)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.file_location = dirname(abspath(__file__)).replace("\\", "/")
+        cls.project_name = join(cls.file_location, "test_activate_gui")
+        project = Project(cls.project_name)
+        project.remove(enable=True)
+
+    def test_activate_gui(self):
+        gui_pr = activate_gui(self.project)
+        self.assertIsInstance(gui_pr, Project,
+                              msg="activate_gui should return a Project inherited from a pyiron_base Project.")
+        for attribute in object.__dir__(self.project):
+            self.assertTrue(hasattr(gui_pr, attribute),
+                            msg=f"GuiProject does not have the {attribute} attribute from the Project.")
+        self.assertTrue(hasattr(gui_pr, 'browser'), msg="GuiProject does not have the added browser attribute.")
+        self.assertIsInstance(gui_pr.browser, ProjectBrowser,
+                              msg='The browser attribute should return a ProjectBrowser')
 
 
 class TestProjectBrowser(unittest.TestCase):
