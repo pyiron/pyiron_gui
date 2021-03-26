@@ -3,7 +3,6 @@
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 from pyiron_base import Project as BaseProject
-
 from pyiron_gui.project.project_browser import ProjectBrowser
 
 __author__ = "Niklas Siemer"
@@ -19,7 +18,8 @@ __date__ = "Feb 02, 2021"
 
 
 def activate_gui(project_instance):
-    """Activate GUI elements for a provided pyiron Project instance
+    """
+    Activate GUI elements for a provided pyiron Project instance
 
         Args:
             project_instance: Instantiated pyiron Project
