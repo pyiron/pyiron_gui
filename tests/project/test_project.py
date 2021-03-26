@@ -3,29 +3,16 @@
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 import unittest
-from os.path import dirname, join, abspath
-from os import remove
+from os.path import join
 from pyiron_base.project.generic import Project
 from pyiron_gui import activate_gui
 from pyiron_gui.project.project_browser import ProjectBrowser
+from pyiron_base._tests import TestWithProject
 from tests.toy_job_run import ToyJob
 import ipywidgets as widgets
 
 
-class TestActivateGUI(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.file_location = dirname(abspath(__file__)).replace("\\", "/")
-        cls.project_name = join(cls.file_location, "test_activate_gui")
-        cls.project = Project(cls.project_name)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.file_location = dirname(abspath(__file__)).replace("\\", "/")
-        cls.project_name = join(cls.file_location, "test_activate_gui")
-        project = Project(cls.project_name)
-        project.remove(enable=True)
+class TestActivateGUI(TestWithProject):
 
     def test_activate_gui(self):
         gui_pr = activate_gui(self.project)
@@ -39,12 +26,10 @@ class TestActivateGUI(unittest.TestCase):
                               msg='The browser attribute should return a ProjectBrowser')
 
 
-class TestProjectBrowser(unittest.TestCase):
+class TestProjectBrowser(TestWithProject):
     @classmethod
     def setUpClass(cls):
-        cls.file_location = dirname(abspath(__file__)).replace("\\", "/")
-        cls.project_name = join(cls.file_location, "test_project")
-        cls.project = Project(cls.project_name)
+        super().setUpClass()
         job = cls.project.create_job(ToyJob, 'testjob')
         job.run()
         hdf = cls.project.create_hdf(cls.project.path, 'test_hdf.h5')
@@ -53,19 +38,13 @@ class TestProjectBrowser(unittest.TestCase):
         with open(cls.project.path+'text.txt', 'w') as f:
             f.write('some text')
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.file_location = dirname(abspath(__file__)).replace("\\", "/")
-        cls.project_name = join(cls.file_location, "test_project")
-        project = Project(cls.project_name)
-        project.remove(enable=True)
-        try:
-            remove(join(cls.file_location, "pyiron.log"))
-        except FileNotFoundError:
-            pass
-
     def setUp(self):
         self.browser = ProjectBrowser(project=self.project, show_files=False)
+
+    def tearDown(self):
+        """pass here to not remove the job from the project"""
+        # TODO: base this on TestWithProject once TestWithCleanProject exists.
+        pass
 
     def test_init_browser(self):
         self.assertTrue(self.browser.project is self.project)
