@@ -36,9 +36,7 @@ def activate_gui(project_instance):
         def browser(self):
             """Provides a browser to inspect the data system of the project."""
             if self._project_browser is None:
-                self._project_browser = ProjectBrowser(project=self,
-                                                       show_files=False,
-                                                       Vbox=None)
+                self._project_browser = ProjectBrowser(project=self, show_files=False, Vbox=None)
             return self._project_browser
 
     if not isinstance(project_instance, BaseProject):
