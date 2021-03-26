@@ -18,7 +18,8 @@ __date__ = "Feb 02, 2021"
 
 
 def activate_gui(project_instance):
-    """Activate GUI elements for a provided pyiron Project instance
+    """
+    Activate GUI elements for a provided pyiron Project instance
 
         Args:
             project_instance: Instantiated pyiron Project
