@@ -3,7 +3,6 @@
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 from pyiron_base import Project as BaseProject
-
 from pyiron_gui.project.project_browser import ProjectBrowser
 
 __author__ = "Niklas Siemer"
