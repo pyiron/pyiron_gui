@@ -41,11 +41,6 @@ class TestProjectBrowser(TestWithProject):
     def setUp(self):
         self.browser = ProjectBrowser(project=self.project, show_files=False)
 
-    def tearDown(self):
-        """pass here to not remove the job from the project"""
-        # TODO: base this on TestWithProject once TestWithCleanProject exists.
-        pass
-
     def test_init_browser(self):
         self.assertTrue(self.browser.project is self.project)
         self.assertEqual(self.browser.path, self.project.path)
