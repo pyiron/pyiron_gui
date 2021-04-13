@@ -23,6 +23,29 @@ __status__ = "development"
 __date__ = "Feb 02, 2021"
 
 
+class DisplayOutputGUI:
+
+    """Display various kind of data in an appealing way using a ipywidgets.Output inside an ipywidgets.Vbox
+    The bahavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display."""
+    def __init__(self, *args, **kwargs):
+        self.box = widgets.VBox(*args, **kwargs)
+        self.buttons = widgets.HBox()
+        self.output = widgets.Output(layout=widgets.Layout(width='100%'))
+        self.box.children = (self.output, self.buttons)
+
+    def __enter__(self):
+        """Use context manager on the widgets.Output widget"""
+        return self.output.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Use context manager on the widgets.Output widget"""
+        self.output.__exit__(exc_type, exc_val, exc_tb)
+
+    def __getattr__(self, item):
+        """Forward unknown attributes to the widgets.Output widget"""
+        return self.output.__getattribute__(item)
+
+
 class ProjectBrowser:
 
     """
@@ -66,7 +89,7 @@ class ProjectBrowser:
         self._busy = False
         self._show_files = show_files
         self._hide_path = True
-        self.output = widgets.Output(layout=widgets.Layout(width='50%', height='100%'))
+        self.output = DisplayOutputGUI(layout=widgets.Layout(width='50%', height='100%'))
         self._clickedFiles = []
         self._data = None
         self.pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
@@ -173,7 +196,7 @@ class ProjectBrowser:
         self.output.clear_output(True)
         self._node_as_dirs = isinstance(self.project, BaseProject)
         self._update_files()
-        body = widgets.HBox([self.filebox, self.output],
+        body = widgets.HBox([self.filebox, self.output.box],
                             layout=widgets.Layout(
                                 min_height='100px',
                                 max_height='800px'
