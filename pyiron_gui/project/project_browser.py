@@ -45,6 +45,22 @@ class DisplayOutputGUI:
         """Forward unknown attributes to the widgets.Output widget"""
         return self.output.__getattribute__(item)
 
+    def display(self, data, default_output=None):
+        with self.output:
+            if data is not None and str(type(data)).split('.')[0] == "<class 'PIL":
+                try:
+                    data_cp = data.copy()
+                    data_cp.thumbnail((800, 800))
+                except:
+                    data_cp = data
+                display(data_cp)
+            elif data is not None:
+                display(data)
+            elif default_output is not None:
+                print(default_output)
+            else:
+                raise TypeError("Given 'data' is of 'NoneType'.")
+
 
 class ProjectBrowser:
 
@@ -358,18 +374,9 @@ class ProjectBrowser:
             data = self.project[filename]
         except(KeyError, IOError):
             data = None
-        with self.output:
-            if data is not None and str(type(data)).split('.')[0] == "<class 'PIL":
-                try:
-                    data_cp = data.copy()
-                    data_cp.thumbnail((800, 800))
-                except:
-                    data_cp = data
-                display(data_cp)
-            elif data is not None:
-                display(data)
-            else:
-                print([filename])
+
+        self.output.display(data, default_output=filename)
+
         if filepath in self._clickedFiles:
             self._data = None
             self._clickedFiles.remove(filepath)
