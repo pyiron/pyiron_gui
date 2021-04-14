@@ -3,20 +3,33 @@
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 import unittest
-from os.path import dirname, join, abspath
-from os import remove
+from os.path import join
 from pyiron_base.project.generic import Project
+from pyiron_gui import activate_gui
 from pyiron_gui.project.project_browser import ProjectBrowser
+from pyiron_base._tests import TestWithProject
 from tests.toy_job_run import ToyJob
 import ipywidgets as widgets
 
 
-class TestProjectBrowser(unittest.TestCase):
+class TestActivateGUI(TestWithProject):
+
+    def test_activate_gui(self):
+        gui_pr = activate_gui(self.project)
+        self.assertIsInstance(gui_pr, Project,
+                              msg="activate_gui should return a Project inherited from a pyiron_base Project.")
+        for attribute in object.__dir__(self.project):
+            self.assertTrue(hasattr(gui_pr, attribute),
+                            msg=f"GuiProject does not have the {attribute} attribute from the Project.")
+        self.assertTrue(hasattr(gui_pr, 'browser'), msg="GuiProject does not have the added browser attribute.")
+        self.assertIsInstance(gui_pr.browser, ProjectBrowser,
+                              msg='The browser attribute should return a ProjectBrowser')
+
+
+class TestProjectBrowser(TestWithProject):
     @classmethod
     def setUpClass(cls):
-        cls.file_location = dirname(abspath(__file__)).replace("\\", "/")
-        cls.project_name = join(cls.file_location, "test_project")
-        cls.project = Project(cls.project_name)
+        super().setUpClass()
         job = cls.project.create_job(ToyJob, 'testjob')
         job.run()
         hdf = cls.project.create_hdf(cls.project.path, 'test_hdf.h5')
@@ -24,17 +37,6 @@ class TestProjectBrowser(unittest.TestCase):
         Project(cls.project.path + 'sub')
         with open(cls.project.path+'text.txt', 'w') as f:
             f.write('some text')
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.file_location = dirname(abspath(__file__)).replace("\\", "/")
-        cls.project_name = join(cls.file_location, "test_project")
-        project = Project(cls.project_name)
-        project.remove(enable=True)
-        try:
-            remove(join(cls.file_location, "pyiron.log"))
-        except FileNotFoundError:
-            pass
 
     def setUp(self):
         self.browser = ProjectBrowser(project=self.project, show_files=False)
