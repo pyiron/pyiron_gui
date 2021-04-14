@@ -32,7 +32,7 @@ setup(
     keywords='pyiron',
     packages=find_packages(exclude=["*tests*"]),
     install_requires=[
-        'pyiron_base>=0.2.7'
+        'pyiron_base>=0.2.9'
         'ipywidgets',
     ]
 )
