@@ -5,4 +5,4 @@ dependencies:
   - coverage
   - codacy-coverage
   - ipywidgets>=7.5
-  - pyiron_base>=0.2.7
+  - pyiron_base>=0.2.9
