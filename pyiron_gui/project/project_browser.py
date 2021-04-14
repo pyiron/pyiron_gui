@@ -8,7 +8,9 @@ import numpy as np
 import pandas
 
 import ipywidgets as widgets
-from IPython.core.display import display
+from IPython.core.display import display, HTML
+
+import nbconvert, nbformat
 
 from pyiron_base import Project as BaseProject
 from pyiron_base.generic.filedata import FileData
@@ -120,6 +122,12 @@ class DisplayOutputGUI:
             print('node: ', type(obj))
         if isinstance(obj, str):
             return (obj)
+        elif isinstance(obj, nbformat.notebooknode.NotebookNode):
+            html_exporter = nbconvert.HTMLExporter()
+            #html_exporter.template_name = "basic"
+            html_exporter.template_name = "classic"
+            (html_output, resources) = html_exporter.from_notebook_node(obj)
+            return HTML(html_output)
         elif isinstance(obj, dict):
             dic = {'': list(obj.keys()), ' ': list(obj.values())}
             return pandas.DataFrame(dic)
