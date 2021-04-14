@@ -13,6 +13,7 @@ from IPython.core.display import display, HTML
 import nbconvert, nbformat
 
 from pyiron_base import Project as BaseProject
+from pyiron_base.generic.util import static_isinstance
 from pyiron_base.generic.filedata import FileData
 
 
@@ -31,6 +32,12 @@ __date__ = "Feb 02, 2021"
 class PyironWrapper:
 
     """Simple wrapper for pyiron objects which extends for basic pyiron functionality (list_nodes ...)"""
+
+    _with_self_representation = {
+        "structure": 'pyiron_atomistics.atomistics.structure.atoms.Atoms',
+        "murnaghan": 'pyiron_atomistics.atomistics.master.murnaghan.Murnaghan'
+    }
+
     def __init__(self, pyi_obj, project, rel_path=""):
         self._wrapped_object = pyi_obj
         self._project = project
@@ -38,10 +45,22 @@ class PyironWrapper:
             self._path = self._project.path
         self._rel_path = rel_path
         # print("init:" + self.path)
+        self._type = None
+        for key, value in self._with_self_representation.items():
+            if static_isinstance(pyi_obj, value):
+                self._type = key
+
+    @property
+    def has_self_representation(self):
+        return self._type is not None
 
     @staticmethod
     def _empty_list():
         return []
+
+    @property
+    def name(self):
+        return self._type
 
     @property
     def project(self):
@@ -62,7 +81,6 @@ class PyironWrapper:
             return self._wrapped_object[item]
         except (IndexError, KeyError):
             rel_path = os.path.relpath(self.path + '/' + item, self._project.path)
-            print(f"getitem: rel_path = {rel_path} _project.path = {self._project.path} path = {self.path}  and item = {item}")
             if rel_path == '.':
                 return self._project
             return self._project[rel_path]
@@ -78,6 +96,16 @@ class PyironWrapper:
     def __repr__(self):
         return repr(self._wrapped_object)
 
+    def self_representation(self):
+        """Self representation of the wrapped object if known, else None is returned."""
+        if self._type is None:
+            return
+        if self._type == "structure":
+            return self._wrapped_object.plot3d()
+        if self._type == 'murnaghan':
+            plt.ioff()
+            self._wrapped_object.plot()
+
 
 class DisplayOutputGUI:
 
@@ -87,13 +115,17 @@ class DisplayOutputGUI:
         self.box = widgets.VBox(*args, **kwargs)
         self.buttons = widgets.HBox()
         self.output = widgets.Output(layout=widgets.Layout(width='100%'))
-        self.box.children = (self.output, self.buttons)
         self.fig = None
         self.ax = None
         self._debug = False
+        self.refresh()
+
+    def refresh(self):
+        self.box.children = (self.buttons, self.output)
 
     def __enter__(self):
         """Use context manager on the widgets.Output widget"""
+        self.buttons = widgets.HBox()
         return self.output.__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -104,12 +136,38 @@ class DisplayOutputGUI:
         """Forward unknown attributes to the widgets.Output widget"""
         return self.output.__getattribute__(item)
 
+    def clear_output(self, *args, **kwargs):
+        clear_button = kwargs.pop('clear_button', False)
+        if clear_button:
+            self.buttons = widgets.HBox()
+        self.output.clear_output(*args, **kwargs)
+        self.refresh()
+
+    def _update_buttons(self, obj):
+
+        def click_button(b):
+            self.output.clear_output()
+            self.display(obj=obj)
+
+        if isinstance(obj, PyironWrapper) and obj.has_self_representation:
+            button = widgets.Button(description="Re-plot " + obj.name)
+            button.on_click(click_button)
+            self.buttons.children = tuple([button])
+
+        self.refresh()
+
     def display(self, obj, default_output=None):
+        self._update_buttons(obj)
         with self.output:
             if obj is None and default_output is None:
                 raise TypeError("Given 'obj' is of 'NoneType'.")
             elif obj is None:
                 print(default_output)
+            elif isinstance(obj, PyironWrapper):
+                plt.ioff()
+                to_display = obj.self_representation()
+                if to_display is not None:
+                    display(obj.self_representation())
             else:
                 plt.ioff()
                 display(self._output_conv(obj))
@@ -329,6 +387,10 @@ class ProjectBrowser:
     def refresh(self):
         """Refresh the project browser."""
         self.output.clear_output(True)
+        if hasattr(self.project, 'self_representation'):
+            # print(f"has self_repr! and type of the wrapped obj = {type(self.project._wrapped_object)}")
+            self.output.display(self.project)
+
         self._node_as_dirs = isinstance(self.project, BaseProject)
         self._update_files()
         body = widgets.HBox([self.filebox, self.output.box],
@@ -407,7 +469,12 @@ class ProjectBrowser:
 
     @property
     def data(self):
-        return self._data
+        if self._data is not None:
+            return self._data
+        if isinstance(self.project, PyironWrapper):
+            return self.project._wrapped_object
+        else:
+            return None
 
     def _update_project_worker(self, rel_path):
         try:
@@ -437,6 +504,7 @@ class ProjectBrowser:
             self._update_project_worker(rel_path)
         else:
             self._project = path
+        self.output.clear_output(True, clear_button=True)
         self.refresh()
 
     def _gen_pathbox_path_list(self):
