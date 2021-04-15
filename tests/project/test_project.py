@@ -4,15 +4,25 @@
 
 import unittest
 from os.path import join
+from os import remove
 from pyiron_base.project.generic import Project
 from pyiron_gui import activate_gui
 from pyiron_gui.project.project_browser import ProjectBrowser
 from pyiron_base._tests import TestWithProject
 from tests.toy_job_run import ToyJob
 import ipywidgets as widgets
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class TestActivateGUI(TestWithProject):
+
+    def test_projects_load_file(self):
+        img_file = join(self.file_location, 'some.tiff')
+        plt.imsave(img_file,
+                   np.array([[0, 100, 255], [100, 0,   0], [50, 50,  255], [255, 0,  255]], dtype=np.uint8))
+        tiff_img = self.project['some.tiff']
+        remove(img_file)
 
     def test_activate_gui(self):
         gui_pr = activate_gui(self.project)
