@@ -4,12 +4,14 @@
 
 import unittest
 from os.path import join
+
+import ipywidgets as widgets
+
+from pyiron_base._tests import TestWithProject
 from pyiron_base.project.generic import Project
 from pyiron_gui import activate_gui
 from pyiron_gui.project.project_browser import ProjectBrowser
-from pyiron_base._tests import TestWithProject
 from tests.toy_job_run import ToyJob
-import ipywidgets as widgets
 
 
 class TestActivateGUI(TestWithProject):
@@ -95,6 +97,12 @@ class TestProjectBrowser(TestWithProject):
         browser = self.browser.copy()
         self.assertEqual(browser.files, [])
         browser.show_files = True
+        self.assertEqual(len(browser.files), 1)
+        self.assertFalse('testjob.h5' in browser.files)
+        self.assertFalse('test_hdf.h5' in browser.files)
+        self.assertTrue('text.txt' in browser.files)
+        browser._file_ext_filter = []
+        browser.refresh()
         self.assertEqual(len(browser.files), 3)
         self.assertTrue('testjob.h5' in browser.files)
         self.assertTrue('test_hdf.h5' in browser.files)
@@ -120,12 +128,13 @@ class TestProjectBrowser(TestWithProject):
         browser = self.browser.copy()
         path = join(browser.path, 'testjob')
         browser._update_project(path)
-        self.assertIsInstance(browser.project, ToyJob)
+        self.assertIsInstance(browser.project._wrapped_object, ToyJob,
+                              msg=f"Any pyiron object with 'TYPE' in list_nodes() should be wrapped.")
         self.assertFalse(browser._node_as_dirs)
         self.assertEqual(browser.path, path)
 
         browser._on_click_file('text.txt')
-        self.assertTrue(browser.data is None)
+        self.assertTrue(browser._data is None, msg="This file should not be present in the ToyJob.")
 
         browser._update_project(path)
         self.assertEqual(browser.path, path)
