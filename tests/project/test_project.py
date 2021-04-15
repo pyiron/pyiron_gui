@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 class TestActivateGUI(TestWithProject):
 
     def test_projects_load_file(self):
-        img_file = join(self.file_location, 'some.tiff')
+        img_file = join(self.project.path, 'some.tiff')
         plt.imsave(img_file,
                    np.array([[0, 100, 255], [100, 0,   0], [50, 50,  255], [255, 0,  255]], dtype=np.uint8))
         tiff_img = self.project['some.tiff']
