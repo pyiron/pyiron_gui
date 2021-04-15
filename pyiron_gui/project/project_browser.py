@@ -3,22 +3,20 @@
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 import os
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas
+import posixpath
 
 import ipywidgets as widgets
+import matplotlib.pyplot as plt
+import nbconvert
+import nbformat
+import numpy as np
+import pandas
 from IPython.core.display import display, HTML
-
-import nbconvert, nbformat
-
-from pyiron_base import Project as BaseProject
-from pyiron_base.generic.filedata import FileData
 
 from pyiron_atomistics import Atoms
 from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
-
-
+from pyiron_base import Project as BaseProject
+from pyiron_base.generic.filedata import FileData
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
@@ -76,14 +74,14 @@ class PyironWrapper:
         if hasattr(self._wrapped_object, 'path'):
             return self._wrapped_object.path
         if hasattr(self.project, 'path'):
-            return self.project.path + '/' + self._rel_path
+            return posixpath.join(self.project.path, self._rel_path)
         raise AttributeError
 
     def __getitem__(self, item):
         try:
             return self._wrapped_object[item]
         except (IndexError, KeyError):
-            rel_path = os.path.relpath(self.path + '/' + item, self._project.path)
+            rel_path = os.path.relpath(posixpath.join(self.path, item), self._project.path)
             if rel_path == '.':
                 return self._project
             return self._project[rel_path]
