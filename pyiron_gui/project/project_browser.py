@@ -193,13 +193,15 @@ class DisplayOutputGUI:
             return pandas.DataFrame(dic)
         elif isinstance(obj, (int, float)):
             return str(obj)
-        elif isinstance(obj, list):
+        elif isinstance(obj, list) and all([isinstance(el, str) for el in obj]):
             max_length = 2000  # performance of widget above is extremely poor
             if len(obj) < max_length:
                 return str(''.join(obj))
             else:
                 return str(''.join(obj[:max_length]) +
                            eol + ' .... file too long: skipped ....')
+        elif isinstance(obj, list):
+            return pandas.DataFrame(obj, columns=['list'])
         elif isinstance(obj, np.ndarray):
             return self.plot_array(obj)
         elif str(type(obj)).split('.')[0] == "<class 'PIL":
