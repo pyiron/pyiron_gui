@@ -32,7 +32,12 @@ setup(
     keywords='pyiron',
     packages=find_packages(exclude=["*tests*"]),
     install_requires=[
-        'pyiron_base>=0.2.9'
-        'ipywidgets',
+        'pyiron_base==0.2.9',
+        'pyiron_atomistics==0.2.10',
+        'ipywidgets==7.6.3',
+        'matplotlib==3.4.1',
+        'mendeleev==0.7.0',
+        'numpy==1.20.2',
+        'pandas==1.2.4',
     ]
 )
