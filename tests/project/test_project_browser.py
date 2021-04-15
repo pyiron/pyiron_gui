@@ -73,8 +73,11 @@ class TestPyironWrapper(TestWithProject):
     def test_self_representation(self):
         self.assertIs(self.pw_str.self_representation(), None)
         self.assertRaises(KeyError, self.pw_murn.self_representation)
-        plot = self.pw_atoms.self_representation()
-        self.assertEqual(type(plot).__name__, 'NGLWidget')
+        try:
+            plot = self.pw_atoms.self_representation()
+            self.assertEqual(type(plot).__name__, 'NGLWidget')
+        except ImportError:
+            pass
 
 
 class TestDisplayOutputGUI(TestWithProject):
@@ -95,8 +98,11 @@ class TestDisplayOutputGUI(TestWithProject):
     def test_display_pyiron_wrapped_atoms(self):
         fe = Atoms(cell=[4, 4, 4], elements=['Fe', 'Fe'], positions=[[0, 0, 0], [2, 2, 2]], pbc=True)
         pw_fe = PyironWrapper(fe, self.project)
-        self.output.display(pw_fe)
-        self.assertEqual(len(self.output.buttons.children), 1)
+        try:
+            self.output.display(pw_fe)
+            self.assertEqual(len(self.output.buttons.children), 1)
+        except ImportError:
+            pass
 
     def test__output_conv_np(self):
         ret = self.output._output_conv(np.array([1, 2, 3, 4]))
