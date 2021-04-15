@@ -80,7 +80,7 @@ class PyironWrapper:
     def __getitem__(self, item):
         try:
             return self._wrapped_object[item]
-        except (IndexError, KeyError):
+        except (IndexError, KeyError, TypeError):
             rel_path = os.path.relpath(posixpath.join(self.path, item), self._project.path)
             if rel_path == '.':
                 return self._project
