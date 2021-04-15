@@ -3,16 +3,29 @@
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 import unittest
+from os import remove
 from os.path import join
+
+import ipywidgets as widgets
+import matplotlib.pyplot as plt
+import numpy as np
+
+from pyiron_base._tests import TestWithProject
 from pyiron_base.project.generic import Project
 from pyiron_gui import activate_gui
 from pyiron_gui.project.project_browser import ProjectBrowser
-from pyiron_base._tests import TestWithProject
 from tests.toy_job_run import ToyJob
-import ipywidgets as widgets
 
 
 class TestActivateGUI(TestWithProject):
+
+    def test_projects_load_file(self):
+        img_file = join(self.project.path, 'some.tiff')
+        plt.imsave(img_file,
+                   np.array([[0, 100, 255], [100, 0,   0], [50, 50,  255], [255, 0,  255]], dtype=np.uint8))
+        tiff_img = self.project['some.tiff']
+        self.assertEqual(type(tiff_img).__name__, 'TiffImageFile')
+        remove(img_file)
 
     def test_activate_gui(self):
         gui_pr = activate_gui(self.project)
