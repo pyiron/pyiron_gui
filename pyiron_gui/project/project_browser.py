@@ -13,8 +13,11 @@ from IPython.core.display import display, HTML
 import nbconvert, nbformat
 
 from pyiron_base import Project as BaseProject
-from pyiron_base.generic.util import static_isinstance
 from pyiron_base.generic.filedata import FileData
+
+from pyiron_atomistics import Atoms
+from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
+
 
 
 __author__ = "Niklas Siemer"
@@ -34,8 +37,8 @@ class PyironWrapper:
     """Simple wrapper for pyiron objects which extends for basic pyiron functionality (list_nodes ...)"""
 
     _with_self_representation = {
-        "structure": 'pyiron_atomistics.atomistics.structure.atoms.Atoms',
-        "murnaghan": 'pyiron_atomistics.atomistics.master.murnaghan.Murnaghan'
+        "structure": Atoms,
+        "murnaghan": Murnaghan
     }
 
     def __init__(self, pyi_obj, project, rel_path=""):
@@ -46,9 +49,9 @@ class PyironWrapper:
         self._rel_path = rel_path
         # print("init:" + self.path)
         self._type = None
-        for key, value in self._with_self_representation.items():
-            if static_isinstance(pyi_obj, value):
-                self._type = key
+        for name, cls in self._with_self_representation.items():
+            if isinstance(pyi_obj, cls):
+                self._type = name
 
     @property
     def has_self_representation(self):
@@ -173,12 +176,13 @@ class DisplayOutputGUI:
                 display(self._output_conv(obj))
 
     def _output_conv(self, obj):
-        if hasattr(obj, '_repr_html_'):
-            return obj  # ._repr_html_()
         eol = os.linesep
         if self._debug:
             print('node: ', type(obj))
-        if isinstance(obj, str):
+
+        if hasattr(obj, '_repr_html_'):
+            return obj  # ._repr_html_()
+        elif isinstance(obj, str):
             return (obj)
         elif isinstance(obj, nbformat.notebooknode.NotebookNode):
             html_exporter = nbconvert.HTMLExporter()
@@ -225,6 +229,10 @@ class DisplayOutputGUI:
                 self.ax.plot(val)
         elif val.ndim == 3:
             self.ax.plot(val[:, :, 0])
+        else:
+            print(f"This is a numpy array of dim = {val.ndim}, " +
+                  "however, plotting is only implemented for up to 3-dimensions.\n")
+            return val
 
         # self.ax.set_title(self._node_name)
         return self.ax.figure
@@ -375,9 +383,10 @@ class ProjectBrowser:
                 self.files = self.project.list_files()
             except AttributeError:
                 pass
-        self.files = [file for file in self.files if not
-                      (file in [node + '.h5' for node in self.nodes] and file.endswith(tuple(file_ext_filter)))
-                      ]
+        self.files = [
+                file for file in self.files if not
+                (file in [node + '.h5' for node in self.nodes] and file.endswith(tuple(file_ext_filter)))
+            ]
 
     def gui(self):
         """Return the VBox containing the browser."""
@@ -471,7 +480,7 @@ class ProjectBrowser:
     def data(self):
         if self._data is not None:
             return self._data
-        if isinstance(self.project, PyironWrapper):
+        elif isinstance(self.project, PyironWrapper):
             return self.project._wrapped_object
         else:
             return None
