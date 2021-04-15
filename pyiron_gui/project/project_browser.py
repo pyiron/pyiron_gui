@@ -280,6 +280,7 @@ class ProjectBrowser:
         self._fix_path = fix_path
         self._busy = False
         self._show_files = show_files
+        self._file_ext_filter = ['.h5', '.db']
         self._hide_path = True
         self.output = DisplayOutputGUI(layout=widgets.Layout(width='50%', height='100%'))
         self._clickedFiles = []
@@ -370,7 +371,6 @@ class ProjectBrowser:
     def _update_files(self):
         # HDF and S3 project do not have list_files
         node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
-        file_ext_filter = ['.h5', '.db']
         self.nodes = self.project.list_nodes()
         if self._is_pyiron_obj:
             self.nodes = [node for node in self.nodes if node not in node_filter]
@@ -381,10 +381,7 @@ class ProjectBrowser:
                 self.files = self.project.list_files()
             except AttributeError:
                 pass
-        self.files = [
-                file for file in self.files if not
-                (file in [node + '.h5' for node in self.nodes] and file.endswith(tuple(file_ext_filter)))
-            ]
+        self.files = [file for file in self.files if not file.endswith(tuple(self._file_ext_filter))]
 
     def gui(self):
         """Return the VBox containing the browser."""
