@@ -129,9 +129,17 @@ class TestDisplayOutputGUI(TestWithProject):
         self.assertEqual(self.output._output_conv(1), '1')
         self.assertEqual(self.output._output_conv(1.0), '1.0')
 
-    def test__output_conv_list(self):
+    def test__output_conv_list_of_str(self):
         ret = self.output._output_conv(['1', '2'])
         self.assertEqual(ret, '12')
+        to_long_list_of_str = [str(i) for i in range(2100)]
+        ret = self.output._output_conv(to_long_list_of_str)
+        self.assertEqual(ret, ''.join(to_long_list_of_str[:2000]) +
+                         os.linesep + ' .... file too long: skipped ....')
+
+    def test__output_conv_list(self):
+        ret = self.output._output_conv([1, 2, 3])
+        self.assertEqual(type(ret).__name__, 'DataFrame')
 
     def test__output_conv_image(self):
         img_file = os.path.join(self.project.path, 'some.tiff')
