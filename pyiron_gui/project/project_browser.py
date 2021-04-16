@@ -3,13 +3,20 @@
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
 import os
+import posixpath
 
 import ipywidgets as widgets
-from IPython.core.display import display
+import matplotlib.pyplot as plt
+import nbconvert
+import nbformat
+import numpy as np
+import pandas
+from IPython.core.display import display, HTML
 
+from pyiron_atomistics import Atoms
+from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
 from pyiron_base import Project as BaseProject
 from pyiron_base.generic.filedata import FileData
-
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
@@ -21,6 +28,214 @@ __maintainer__ = "Niklas Siemer"
 __email__ = "siemer@mpie.de"
 __status__ = "development"
 __date__ = "Feb 02, 2021"
+
+
+class PyironWrapper:
+
+    """Simple wrapper for pyiron objects which extends for basic pyiron functionality (list_nodes ...)"""
+
+    _with_self_representation = {
+        "structure": Atoms,
+        "murnaghan": Murnaghan
+    }
+
+    def __init__(self, pyi_obj, project, rel_path=""):
+        self._wrapped_object = pyi_obj
+        self._project = project
+        if not hasattr(pyi_obj, 'path'):
+            self._path = self._project.path
+        self._rel_path = rel_path
+        # print("init:" + self.path)
+        self._type = None
+        for name, cls in self._with_self_representation.items():
+            if isinstance(pyi_obj, cls):
+                self._type = name
+
+    @property
+    def has_self_representation(self):
+        return self._type is not None
+
+    @staticmethod
+    def _empty_list():
+        return []
+
+    @property
+    def name(self):
+        return self._type
+
+    @property
+    def project(self):
+        if hasattr(self._wrapped_object, 'project'):
+            return self._wrapped_object.project
+        return self._project
+
+    @property
+    def path(self):
+        if hasattr(self._wrapped_object, 'path'):
+            return self._wrapped_object.path
+        if hasattr(self.project, 'path'):
+            return posixpath.join(self.project.path, self._rel_path)
+        raise AttributeError
+
+    def __getitem__(self, item):
+        try:
+            return self._wrapped_object[item]
+        except (IndexError, KeyError, TypeError):
+            rel_path = os.path.relpath(posixpath.join(self.path, item), self._project.path)
+            if rel_path == '.':
+                return self._project
+            return self._project[rel_path]
+
+    def __getattr__(self, item):
+        if item in ['list_nodes', 'list_groups']:
+            try:
+                return getattr(self._wrapped_object, item)
+            except AttributeError:
+                return self._empty_list
+        return getattr(self._wrapped_object, item)
+
+    def __repr__(self):
+        return repr(self._wrapped_object)
+
+    def self_representation(self):
+        """Self representation of the wrapped object if known, else None is returned."""
+        if self._type is None:
+            return
+        if self._type == "structure":
+            return self._wrapped_object.plot3d()
+        if self._type == 'murnaghan':
+            plt.ioff()
+            self._wrapped_object.plot()
+
+
+class DisplayOutputGUI:
+
+    """Display various kind of data in an appealing way using a ipywidgets.Output inside an ipywidgets.Vbox
+    The behavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display."""
+    def __init__(self, *args, **kwargs):
+        self.box = widgets.VBox(*args, **kwargs)
+        self.buttons = widgets.HBox()
+        self.output = widgets.Output(layout=widgets.Layout(width='100%'))
+        self.fig = None
+        self.ax = None
+        self._debug = False
+        self.refresh()
+
+    def refresh(self):
+        self.box.children = (self.buttons, self.output)
+
+    def __enter__(self):
+        """Use context manager on the widgets.Output widget"""
+        self.buttons = widgets.HBox()
+        return self.output.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Use context manager on the widgets.Output widget"""
+        self.output.__exit__(exc_type, exc_val, exc_tb)
+
+    def __getattr__(self, item):
+        """Forward unknown attributes to the widgets.Output widget"""
+        return self.output.__getattribute__(item)
+
+    def clear_output(self, *args, **kwargs):
+        clear_button = kwargs.pop('clear_button', False)
+        if clear_button:
+            self.buttons = widgets.HBox()
+        self.output.clear_output(*args, **kwargs)
+        self.refresh()
+
+    def _update_buttons(self, obj):
+
+        def click_button(b):
+            self.output.clear_output()
+            self.display(obj=obj)
+
+        if isinstance(obj, PyironWrapper) and obj.has_self_representation:
+            button = widgets.Button(description="Re-plot " + obj.name)
+            button.on_click(click_button)
+            self.buttons.children = tuple([button])
+
+        self.refresh()
+
+    def display(self, obj, default_output=None):
+        self._update_buttons(obj)
+        with self.output:
+            if obj is None and default_output is None:
+                raise TypeError("Given 'obj' is of 'NoneType'.")
+            elif obj is None:
+                print(default_output)
+            elif isinstance(obj, PyironWrapper):
+                plt.ioff()
+                to_display = obj.self_representation()
+                if to_display is not None:
+                    display(obj.self_representation())
+            else:
+                plt.ioff()
+                display(self._output_conv(obj))
+
+    def _output_conv(self, obj):
+        eol = os.linesep
+        if self._debug:
+            print('node: ', type(obj))
+
+        if hasattr(obj, '_repr_html_'):
+            return obj  # ._repr_html_()
+        elif isinstance(obj, str):
+            return (obj)
+        elif isinstance(obj, nbformat.notebooknode.NotebookNode):
+            html_exporter = nbconvert.HTMLExporter()
+            #html_exporter.template_name = "basic"
+            html_exporter.template_name = "classic"
+            (html_output, resources) = html_exporter.from_notebook_node(obj)
+            return HTML(html_output)
+        elif isinstance(obj, dict):
+            dic = {'': list(obj.keys()), ' ': list(obj.values())}
+            return pandas.DataFrame(dic)
+        elif isinstance(obj, (int, float)):
+            return str(obj)
+        elif isinstance(obj, list) and all([isinstance(el, str) for el in obj]):
+            max_length = 2000  # performance of widget above is extremely poor
+            if len(obj) < max_length:
+                return str(''.join(obj))
+            else:
+                return str(''.join(obj[:max_length]) +
+                           eol + ' .... file too long: skipped ....')
+        elif isinstance(obj, list):
+            return pandas.DataFrame(obj, columns=['list'])
+        elif isinstance(obj, np.ndarray):
+            return self.plot_array(obj)
+        elif str(type(obj)).split('.')[0] == "<class 'PIL":
+            try:
+                data_cp = obj.copy()
+                data_cp.thumbnail((800, 800))
+            except:
+                data_cp = obj
+            return data_cp
+        else:
+            return obj
+
+    def plot_array(self, val):
+        if self.fig is None:
+            self.fig, self.ax = plt.subplots()
+        else:
+            self.ax.clear()
+
+        if val.ndim == 1:
+            self.ax.plot(val)
+        elif val.ndim == 2:
+            if len(val) == 1:
+                self.ax.plot(val[0])
+            else:
+                self.ax.plot(val)
+        elif val.ndim == 3:
+            self.ax.plot(val[:, :, 0])
+        else:
+            print(f"This is a numpy array of dim = {val.ndim}, " +
+                  "however, plotting is only implemented for up to 3-dimensions.\n")
+            return val
+
+        # self.ax.set_title(self._node_name)
+        return self.ax.figure
 
 
 class ProjectBrowser:
@@ -47,8 +262,10 @@ class ProjectBrowser:
             show_files(bool): If True files (from project.list_files()) are displayed.
         """
         self._project = project
+        self._project_to_obj = None
         self._node_as_dirs = isinstance(self.project, BaseProject)
-        self._initial_project = project
+        self._is_pyiron_obj = 'pyiron' in str(type(self.project))  # ToDo: isinstace(obj, PyironObject)
+        self._initial_project = self._project
         self._initial_project_path = self.path
         self._color = {
             "dir": '#9999FF',
@@ -65,8 +282,9 @@ class ProjectBrowser:
         self._fix_path = fix_path
         self._busy = False
         self._show_files = show_files
+        self._file_ext_filter = ['.h5', '.db']
         self._hide_path = True
-        self.output = widgets.Output(layout=widgets.Layout(width='50%', height='100%'))
+        self.output = DisplayOutputGUI(layout=widgets.Layout(width='50%', height='100%'))
         self._clickedFiles = []
         self._data = None
         self.pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
@@ -154,14 +372,18 @@ class ProjectBrowser:
 
     def _update_files(self):
         # HDF and S3 project do not have list_files
+        node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
+        self.nodes = self.project.list_nodes()
+        if self._is_pyiron_obj:
+            self.nodes = [node for node in self.nodes if node not in node_filter]
+        self.dirs = self.project.list_groups()
         self.files = list()
         if self._show_files:
             try:
                 self.files = self.project.list_files()
             except AttributeError:
                 pass
-        self.nodes = self.project.list_nodes()
-        self.dirs = self.project.list_groups()
+        self.files = [file for file in self.files if not file.endswith(tuple(self._file_ext_filter))]
 
     def gui(self):
         """Return the VBox containing the browser."""
@@ -171,9 +393,13 @@ class ProjectBrowser:
     def refresh(self):
         """Refresh the project browser."""
         self.output.clear_output(True)
+        if hasattr(self.project, 'self_representation'):
+            # print(f"has self_repr! and type of the wrapped obj = {type(self.project._wrapped_object)}")
+            self.output.display(self.project)
+
         self._node_as_dirs = isinstance(self.project, BaseProject)
         self._update_files()
-        body = widgets.HBox([self.filebox, self.output],
+        body = widgets.HBox([self.filebox, self.output.box],
                             layout=widgets.Layout(
                                 min_height='100px',
                                 max_height='800px'
@@ -249,13 +475,24 @@ class ProjectBrowser:
 
     @property
     def data(self):
-        return self._data
+        if self._data is not None:
+            return self._data
+        elif isinstance(self.project, PyironWrapper):
+            return self.project._wrapped_object
+        else:
+            return None
 
     def _update_project_worker(self, rel_path):
         try:
             new_project = self.project[rel_path]
             # Check if the new_project implements list_nodes()
-            new_project.list_nodes()
+            if 'TYPE' in new_project.list_nodes():
+                try:
+                    new_project2 = PyironWrapper(new_project.to_object(), self.project, rel_path)
+                except ValueError:  # to_object() (may?) fail with an ValueError for GenericParameters
+                    pass
+                else:
+                    new_project = new_project2
         except (ValueError, AttributeError):
             self.path_string_box = self.path_string_box.__class__(description="(rel) Path", value='')
             with self.output:
@@ -273,6 +510,7 @@ class ProjectBrowser:
             self._update_project_worker(rel_path)
         else:
             self._project = path
+        self.output.clear_output(True, clear_button=True)
         self.refresh()
 
     def _gen_pathbox_path_list(self):
@@ -335,18 +573,9 @@ class ProjectBrowser:
             data = self.project[filename]
         except(KeyError, IOError):
             data = None
-        with self.output:
-            if data is not None and str(type(data)).split('.')[0] == "<class 'PIL":
-                try:
-                    data_cp = data.copy()
-                    data_cp.thumbnail((800, 800))
-                except:
-                    data_cp = data
-                display(data_cp)
-            elif data is not None:
-                display(data)
-            else:
-                print([filename])
+
+        self.output.display(data, default_output=[filename])
+
         if filepath in self._clickedFiles:
             self._data = None
             self._clickedFiles.remove(filepath)
