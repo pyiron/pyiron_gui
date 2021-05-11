@@ -1,0 +1,12 @@
+version: 2
+updates:
+- package-ecosystem: pip
+  directory: "/"
+  schedule:
+    interval: weekly
+    day: monday
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: pyiron-base
+    versions:
+    - 0.2.11
