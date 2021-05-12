@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='pyiron_gui',
-    version='0.0.1',
+    version='0.0.2',
     description='Repository for GUI plugins to the pyiron IDE.',
     long_description='http://pyiron.org',
 
