@@ -3,10 +3,11 @@ Setuptools based setup module
 """
 from setuptools import setup, find_packages
 
+import versioneer
 
 setup(
     name='pyiron_gui',
-    version='0.0.2',
+    version=versioneer.get_version(),
     description='Repository for GUI plugins to the pyiron IDE.',
     long_description='http://pyiron.org',
 
@@ -30,12 +31,12 @@ setup(
     ],
 
     keywords='pyiron',
-    packages=find_packages(exclude=["*tests*"]),
+    packages=find_packages(exclude=["*tests*", "*docs*", "*binder*", "*conda*", "*notebooks*", "*.ci_support*"]),
     install_requires=[
         'pyiron_base==0.2.11',
         'pyiron_atomistics==0.2.11',
         'ipywidgets==7.6.3',
-        'matplotlib-base==3.4.2',
+        'matplotlib==3.4.2',
         'mendeleev==0.7.0',
         'numpy==1.20.2',
         'pandas==1.2.4',
