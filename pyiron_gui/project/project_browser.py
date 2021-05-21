@@ -32,12 +32,23 @@ __date__ = "Feb 02, 2021"
 
 class PyironWrapper:
 
-    """Simple wrapper for pyiron objects which extends for basic pyiron functionality (list_nodes ...)"""
-
     _with_self_representation = {
         "structure": Atoms,
         "murnaghan": Murnaghan
     }
+
+    def __new__(cls, pyi_obj, project, rel_path=""):
+        if isinstance(pyi_obj, Atoms):
+            return AtomsWrapper(pyi_obj, project, rel_path=rel_path)
+        elif isinstance(pyi_obj, Murnaghan):
+            return MurnaghanWrapper(pyi_obj, project, rel_path=rel_path)
+        else:
+            return BaseWrapper(pyi_obj, project, rel_path="")
+
+
+class BaseWrapper:
+
+    """Simple wrapper for pyiron objects which extends for basic pyiron functionality (list_nodes ...)"""
 
     def __init__(self, pyi_obj, project, rel_path=""):
         self._wrapped_object = pyi_obj
@@ -47,9 +58,6 @@ class PyironWrapper:
         self._rel_path = rel_path
         # print("init:" + self.path)
         self._type = None
-        for name, cls in self._with_self_representation.items():
-            if isinstance(pyi_obj, cls):
-                self._type = name
 
     @property
     def has_self_representation(self):
@@ -99,13 +107,26 @@ class PyironWrapper:
 
     def self_representation(self):
         """Self representation of the wrapped object if known, else None is returned."""
-        if self._type is None:
-            return
-        if self._type == "structure":
-            return self._wrapped_object.plot3d()
-        if self._type == 'murnaghan':
-            plt.ioff()
-            self._wrapped_object.plot()
+        return None
+
+
+class AtomsWrapper(BaseWrapper):
+    def __init__(self, pyi_obj, project, rel_path=""):
+        super().__init__(pyi_obj, project, rel_path=rel_path)
+        self._type = 'structure'
+
+    def self_representation(self):
+        return self._wrapped_object.plot3d()
+
+
+class MurnaghanWrapper(BaseWrapper):
+    def __init__(self, pyi_obj, project, rel_path=""):
+        super().__init__(pyi_obj, project, rel_path=rel_path)
+        self._type = 'murnaghan'
+
+    def self_representation(self):
+        plt.ioff()
+        self._wrapped_object.plot()
 
 
 class DisplayOutputGUI:
@@ -150,7 +171,7 @@ class DisplayOutputGUI:
             self.output.clear_output()
             self.display(obj=obj)
 
-        if isinstance(obj, PyironWrapper) and obj.has_self_representation:
+        if isinstance(obj, BaseWrapper) and obj.has_self_representation:
             button = widgets.Button(description="Re-plot " + obj.name)
             button.on_click(click_button)
             self.buttons.children = tuple([button])
@@ -164,7 +185,7 @@ class DisplayOutputGUI:
                 raise TypeError("Given 'obj' is of 'NoneType'.")
             elif obj is None:
                 print(default_output)
-            elif isinstance(obj, PyironWrapper):
+            elif isinstance(obj, BaseWrapper):
                 plt.ioff()
                 to_display = obj.self_representation()
                 if to_display is not None:
