@@ -100,7 +100,7 @@ class TestDisplayOutputGUI(TestWithProject):
         pw_fe = PyironWrapper(fe, self.project)
         try:
             self.output.display(pw_fe)
-            self.assertEqual(len(self.output.buttons.children), 1)
+            self.assertEqual(len(self.output.header.children), 1)
         except ImportError:
             pass
 

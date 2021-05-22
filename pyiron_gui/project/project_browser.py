@@ -135,7 +135,7 @@ class DisplayOutputGUI:
     The behavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display."""
     def __init__(self, *args, **kwargs):
         self.box = widgets.VBox(*args, **kwargs)
-        self.buttons = widgets.HBox()
+        self.header = widgets.HBox()
         self.output = widgets.Output(layout=widgets.Layout(width='100%'))
         self.fig = None
         self.ax = None
@@ -143,11 +143,11 @@ class DisplayOutputGUI:
         self.refresh()
 
     def refresh(self):
-        self.box.children = (self.buttons, self.output)
+        self.box.children = (self.header, self.output)
 
     def __enter__(self):
         """Use context manager on the widgets.Output widget"""
-        self.buttons = widgets.HBox()
+        self.header = widgets.HBox()
         return self.output.__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -161,11 +161,11 @@ class DisplayOutputGUI:
     def clear_output(self, *args, **kwargs):
         clear_button = kwargs.pop('clear_button', False)
         if clear_button:
-            self.buttons = widgets.HBox()
+            self.header = widgets.HBox()
         self.output.clear_output(*args, **kwargs)
         self.refresh()
 
-    def _update_buttons(self, obj):
+    def _update_header(self, obj):
 
         def click_button(b):
             self.output.clear_output()
@@ -174,12 +174,12 @@ class DisplayOutputGUI:
         if isinstance(obj, BaseWrapper) and obj.has_self_representation:
             button = widgets.Button(description="Re-plot " + obj.name)
             button.on_click(click_button)
-            self.buttons.children = tuple([button])
+            self.header.children = tuple([button])
 
         self.refresh()
 
     def display(self, obj, default_output=None):
-        self._update_buttons(obj)
+        self._update_header(obj)
         with self.output:
             if obj is None and default_output is None:
                 raise TypeError("Given 'obj' is of 'NoneType'.")
