@@ -114,9 +114,48 @@ class AtomsWrapper(BaseWrapper):
     def __init__(self, pyi_obj, project, rel_path=""):
         super().__init__(pyi_obj, project, rel_path=rel_path)
         self._type = 'structure'
+        self._options = {
+            'particle_size': 1.0,
+            'camera': 'orthographic'
+        }
+        self._option_widgets = [
+            widgets.Dropdown(options=['perspective', 'orthographic'], value='orthographic'),
+            widgets.FloatSlider(value=1.0, min=0.1, max=5.0, step=0.1, readout_format='.1f')
+        ]
+
+    @property
+    def option_representation(self):
+        """ipywidet to change the options for the self_representation"""
+        return widgets.HBox(self._option_widgets)
+
+    def _parse_option_widgets(self):
+        self._options['camera'] = self._option_widgets[0].value
+        self._options['particle_size'] = self._option_widgets[1].value
 
     def self_representation(self):
-        return self._wrapped_object.plot3d()
+        self._parse_option_widgets()
+        return self._wrapped_object.plot3d(
+            mode='NGLview',
+            show_cell=True,
+            show_axes=True,
+            camera=self._options['camera'],
+            spacefill=True,
+            particle_size=self._options['particle_size'],
+            select_atoms=None,
+            background="white",
+            color_scheme=None,
+            colors=None,
+            scalar_field=None,
+            scalar_start=None,
+            scalar_end=None,
+            scalar_cmap=None,
+            vector_field=None,
+            vector_color=None,
+            magnetic_moments=False,
+            view_plane=np.array([0, 0, 1]),
+            distance_from_camera=1.0,
+            opacity=1.0
+        )
 
 
 class MurnaghanWrapper(BaseWrapper):
@@ -171,10 +210,16 @@ class DisplayOutputGUI:
             self.output.clear_output()
             self.display(obj=obj)
 
+        childs = []
         if isinstance(obj, BaseWrapper) and obj.has_self_representation:
             button = widgets.Button(description="Re-plot " + obj.name)
             button.on_click(click_button)
-            self.header.children = tuple([button])
+            childs.append(button)
+
+        if isinstance(obj, BaseWrapper) and hasattr(obj, 'option_representation'):
+            childs.append(obj.option_representation)
+
+        self.header.children = tuple(childs)
 
         self.refresh()
 
