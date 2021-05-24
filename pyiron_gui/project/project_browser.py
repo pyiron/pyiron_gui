@@ -114,30 +114,59 @@ class AtomsWrapper(BaseWrapper):
     def __init__(self, pyi_obj, project, rel_path=""):
         super().__init__(pyi_obj, project, rel_path=rel_path)
         self._type = 'structure'
+        self._ngl_widget = None
         self._options = {
             'particle_size': 1.0,
-            'camera': 'orthographic'
+            'camera': 'orthographic',
+            'reset_view': False,
+            'axes': True,
+            'cell': True
         }
-        self._option_widgets = [
-            widgets.Dropdown(options=['perspective', 'orthographic'], value='orthographic'),
-            widgets.FloatSlider(value=1.0, min=0.1, max=5.0, step=0.1, readout_format='.1f')
-        ]
+        self._init_option_widgets()
+
+    def _init_option_widgets(self):
+        check_box_layout = widgets.Layout(width='auto', margin='0px 0px 0px -50px')
+        self._option_widgets = {
+            'camera': widgets.Dropdown(options=['perspective', 'orthographic'], value=self._options['camera'],
+                                       layout=widgets.Layout(width='min-content'), toolip='Camera mode'),
+            'particle_size': widgets.FloatSlider(value=self._options['particle_size'],
+                                                 min=0.1, max=5.0, step=0.1, readout_format='.1f',
+                                                 description="atom size",
+                                                 layout=widgets.Layout(width='60%')),
+            'cell': widgets.Checkbox(description='cell', layout=check_box_layout,
+                                     value=self._options['cell'],
+                                     tooltip='Show cell if checked'),
+            'axes': widgets.Checkbox(description='axes', layout=check_box_layout,
+                                     value=self._options['axes'],
+                                     tooltip='Show axes if checked'),
+            'reset_view': widgets.Checkbox(description='reset view', layout=check_box_layout,
+                                           value=self._options['reset_view'], tooltip='Reset view if checked')
+        }
 
     @property
     def option_representation(self):
         """ipywidet to change the options for the self_representation"""
-        return widgets.HBox(self._option_widgets)
+        widget_list = list(self._option_widgets.values())
+        return widgets.VBox([
+            widgets.HBox(widget_list[0:2]),
+            widgets.HBox(widget_list[2:])
+        ])
 
     def _parse_option_widgets(self):
-        self._options['camera'] = self._option_widgets[0].value
-        self._options['particle_size'] = self._option_widgets[1].value
+        for key in self._options.keys():
+            self._options[key] = self._option_widgets[key].value
 
     def self_representation(self):
         self._parse_option_widgets()
-        return self._wrapped_object.plot3d(
+        if self._ngl_widget is not None:
+            orient = self._ngl_widget.get_state()['_camera_orientation']
+        else:
+            orient = []
+
+        self._ngl_widget = self._wrapped_object.plot3d(
             mode='NGLview',
-            show_cell=True,
-            show_axes=True,
+            show_cell=self._options['cell'],
+            show_axes=self._options['axes'],
             camera=self._options['camera'],
             spacefill=True,
             particle_size=self._options['particle_size'],
@@ -156,6 +185,9 @@ class AtomsWrapper(BaseWrapper):
             distance_from_camera=1.0,
             opacity=1.0
         )
+        if not self._options['reset_view'] and len(orient) == 16:
+            self._ngl_widget.control.orient(orient)
+        return self._ngl_widget
 
 
 class MurnaghanWrapper(BaseWrapper):
@@ -211,13 +243,17 @@ class DisplayOutputGUI:
             self.display(obj=obj)
 
         childs = []
-        if isinstance(obj, BaseWrapper) and obj.has_self_representation:
-            button = widgets.Button(description="Re-plot " + obj.name)
-            button.on_click(click_button)
-            childs.append(button)
 
+        button = None
         if isinstance(obj, BaseWrapper) and hasattr(obj, 'option_representation'):
             childs.append(obj.option_representation)
+            button = widgets.Button(description="Apply")
+        elif isinstance(obj, BaseWrapper) and obj.has_self_representation:
+            button = widgets.Button(description="Re-plot " + obj.name)
+
+        if button is not None:
+            button.on_click(click_button)
+            childs.append(button)
 
         self.header.children = tuple(childs)
 
@@ -234,7 +270,7 @@ class DisplayOutputGUI:
                 plt.ioff()
                 to_display = obj.self_representation()
                 if to_display is not None:
-                    display(obj.self_representation())
+                    display(to_display)
             else:
                 plt.ioff()
                 display(self._output_conv(obj))
