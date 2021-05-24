@@ -240,7 +240,13 @@ class DisplayOutputGUI:
 
         def click_button(b):
             self.output.clear_output()
-            self.display(obj=obj)
+            if b.description == "Show data":
+                b.description = "Show plot"
+                b.tooltip = "Display the plotting representation"
+                with self.output:
+                    display(obj)
+            else:
+                self.display(obj=obj)
 
         childs = []
 
@@ -250,6 +256,8 @@ class DisplayOutputGUI:
             button = widgets.Button(description="Apply")
         elif isinstance(obj, BaseWrapper) and obj.has_self_representation:
             button = widgets.Button(description="Re-plot " + obj.name)
+        elif isinstance(obj, np.ndarray):
+            button = widgets.Button(description="Show data", tooltip="Display the raw data representation.")
 
         if button is not None:
             button.on_click(click_button)
@@ -271,6 +279,9 @@ class DisplayOutputGUI:
                 to_display = obj.self_representation()
                 if to_display is not None:
                     display(to_display)
+            elif isinstance(obj, np.ndarray):
+                plt.ioff()
+                display(self.plot_array(obj))
             else:
                 plt.ioff()
                 display(self._output_conv(obj))
@@ -304,8 +315,6 @@ class DisplayOutputGUI:
                            eol + ' .... file too long: skipped ....')
         elif isinstance(obj, list):
             return pandas.DataFrame(obj, columns=['list'])
-        elif isinstance(obj, np.ndarray):
-            return self.plot_array(obj)
         elif str(type(obj)).split('.')[0] == "<class 'PIL":
             try:
                 data_cp = obj.copy()
