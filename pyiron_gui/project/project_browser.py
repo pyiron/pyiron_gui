@@ -208,6 +208,7 @@ class DisplayOutputGUI:
         self.box = widgets.VBox(*args, **kwargs)
         self.header = widgets.HBox()
         self.output = widgets.Output(layout=widgets.Layout(width='100%'))
+        self._plot_options = None
         self.fig = None
         self.ax = None
         self._debug = False
@@ -236,18 +237,23 @@ class DisplayOutputGUI:
         self.output.clear_output(*args, **kwargs)
         self.refresh()
 
+    def _click_button(self, b):
+        self.output.clear_output()
+        if b.description == "Show data":
+            b.description = "Show plot"
+            b.tooltip = "Display the plotting representation"
+            self.header.children = tuple([b])
+            self.refresh()
+            with self.output:
+                display(b.obj)
+        elif b.description == "Re-plot":
+            with self.output:
+                plt.ioff()
+                display(self.plot_array(b.obj))
+        else:
+            self.display(obj=b.obj)
+
     def _update_header(self, obj):
-
-        def click_button(b):
-            self.output.clear_output()
-            if b.description == "Show data":
-                b.description = "Show plot"
-                b.tooltip = "Display the plotting representation"
-                with self.output:
-                    display(obj)
-            else:
-                self.display(obj=obj)
-
         childs = []
 
         button = None
@@ -257,10 +263,17 @@ class DisplayOutputGUI:
         elif isinstance(obj, BaseWrapper) and obj.has_self_representation:
             button = widgets.Button(description="Re-plot " + obj.name)
         elif isinstance(obj, np.ndarray):
+            childs.append(self._array_plot_options(obj))
+            button = widgets.Button(description="Re-plot")
+            button.obj = obj
+            button.on_click(self._click_button)
+            childs.append(button)
+
             button = widgets.Button(description="Show data", tooltip="Display the raw data representation.")
 
         if button is not None:
-            button.on_click(click_button)
+            button.obj = obj
+            button.on_click(self._click_button)
             childs.append(button)
 
         self.header.children = tuple(childs)
@@ -325,6 +338,35 @@ class DisplayOutputGUI:
         else:
             return obj
 
+    def _array_plot_options(self, numpy_array):
+        """Return List of ipywidgets to change plot options"""
+        box = widgets.VBox()
+        if numpy_array.ndim >= 3:
+            self._array_plot_widgets(numpy_array=numpy_array)
+            box.children = tuple([
+                widgets.HBox(self._plot_options['dim']),
+                widgets.HBox(self._plot_options['idx'])
+            ])
+        return box
+
+    def _array_plot_widgets(self, numpy_array):
+        check_box_layout = widgets.Layout(width='auto', margin='0px 0px 0px -65px')
+        shape = numpy_array.shape
+        fixed_idx_list = []
+        dim_list = []
+        dim_list.append(widgets.Checkbox(description='Dim 0', layout=check_box_layout, value=True,
+                                         description_tooltip='Plot dimension 0 of the array'))
+        dim_list.append(widgets.Checkbox(description='Dim 1', layout=check_box_layout, value=True,
+                                         description_tooltip='Plot dimension 0 of the array'))
+        for dim in range(numpy_array.ndim-2):
+            dim_list.append(widgets.Checkbox(description='Dim ' + str(2+dim),
+                                             description_tooltip=f'Plot dimension {2+dim} of the array',
+                                             layout=check_box_layout, value=False))
+            fixed_idx_list.append(widgets.IntText(description=f'Fixed index {dim}', value=0,
+                                                  description_tooltip=f'Fixed index of the {dim}th not chosen '
+                                                                      f'dimension; the shape of the array is {shape}.'))
+        self._plot_options = {'dim': dim_list, 'idx': fixed_idx_list}
+
     def plot_array(self, val):
         if self.fig is None:
             self.fig, self.ax = plt.subplots()
@@ -338,14 +380,30 @@ class DisplayOutputGUI:
                 self.ax.plot(val[0])
             else:
                 self.ax.plot(val)
-        elif val.ndim == 3:
-            self.ax.plot(val[:, :, 0])
+        # elif val.ndim == 3:
+        #    self.ax.plot(val[:, :, 0])
         else:
-            print(f"This is a numpy array of dim = {val.ndim}, " +
-                  "however, plotting is only implemented for up to 3-dimensions.\n")
-            return val
+            slc = []
+            i = 0
+            for dim_widget in self._plot_options['dim']:
+                if dim_widget.value:
+                    slc.append(slice(None))
+                else:
+                    slc.append(self._plot_options['idx'][i].value)
+                    i += 1
+            if i != val.ndim - 2:
+                print(f"Error: You need to select two dimensions.")
+                return
+            else:
+                self.ax.plot(val[tuple(slc)])
+
+        #    print(f"This is a numpy array of dim = {val.ndim}, " +
+        #          "however, plotting is only implemented for up to 3-dimensions.\n")
+        #    return val
 
         # self.ax.set_title(self._node_name)
+        self.ax.relim()
+        self.ax.autoscale_view()
         return self.ax.figure
 
 
