@@ -37,6 +37,7 @@ jobs:
     - name: Coverage
       shell: bash -l {0}
       run: |
+        coverage combine
         coveralls
         coverage xml
         python-codacy-coverage -r coverage.xml
