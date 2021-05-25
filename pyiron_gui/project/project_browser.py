@@ -289,7 +289,7 @@ class DisplayOutputGUI:
         elif b.description == "Re-plot":
             with self.output:
                 plt.ioff()
-                display(self.plot_array(b.obj))
+                display(self._plot_array(b.obj))
         else:
             self.display(obj=b.obj)
 
@@ -334,7 +334,7 @@ class DisplayOutputGUI:
                     display(to_display)
             elif isinstance(obj, np.ndarray):
                 plt.ioff()
-                display(self.plot_array(obj))
+                display(self._plot_array(obj))
             else:
                 plt.ioff()
                 display(self._output_conv(obj))
@@ -410,7 +410,7 @@ class DisplayOutputGUI:
 
         self._plot_options = {'dim': dim_widget, 'idx': fixed_idx_list}
 
-    def plot_array(self, val):
+    def _plot_array(self, val):
         if self.fig is None:
             self.fig, self.ax = plt.subplots()
         else:
@@ -423,6 +423,11 @@ class DisplayOutputGUI:
                 self.ax.plot(val[0])
             else:
                 self.ax.plot(val)
+        elif self._plot_options is None:
+            slc = [0 for i in range(val.ndim)]
+            slc[0] = slice(None)
+            slc[1] = slice(None)
+            self.ax.plot(val[tuple(slc)])
         else:
             if len(self._plot_options['dim'].value) != 2:
                 print(f"Error: You need to select exactly two dimensions.")
@@ -435,8 +440,7 @@ class DisplayOutputGUI:
                 else:
                     slc[index] = self._plot_options['idx'][i].value
                     i += 1
-            else:
-                self.ax.plot(val[tuple(slc)])
+            self.ax.plot(val[tuple(slc)])
 
         self.ax.relim()
         self.ax.autoscale_view()
