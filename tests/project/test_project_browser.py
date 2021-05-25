@@ -100,13 +100,9 @@ class TestDisplayOutputGUI(TestWithProject):
         pw_fe = PyironWrapper(fe, self.project)
         try:
             self.output.display(pw_fe)
-            self.assertEqual(len(self.output.header.children), 1)
+            self.assertEqual(len(self.output.header.children), 2)
         except ImportError:
             pass
-
-    def test__output_conv_np(self):
-        ret = self.output._output_conv(np.array([1, 2, 3, 4]))
-        self.assertEqual(type(ret).__name__, 'Figure')
 
     def test__output_conv_ipynb(self):
         nb_cell = nbformat.NotebookNode(
@@ -157,14 +153,14 @@ class TestDisplayOutputGUI(TestWithProject):
         self.assertEqual(type(ret).__name__, 'Image')
         os.remove(img_file)
 
-    def test_plot_array(self):
-        ret = self.output.plot_array(np.array([1, 2, 3]))
+    def test__plot_array(self):
+        ret = self.output._plot_array(np.array([1, 2, 3]))
         self.assertEqual(type(ret).__name__, 'Figure')
 
-        ret = self.output.plot_array(np.array([[1, 2], [2, 3]]))
+        ret = self.output._plot_array(np.array([[1, 2], [2, 3]]))
         self.assertEqual(type(ret).__name__, 'Figure')
 
-        ret = self.output.plot_array(
+        ret = self.output._plot_array(
             np.array(
                 [[
                     [1, 2, 3],
@@ -174,10 +170,12 @@ class TestDisplayOutputGUI(TestWithProject):
         )
         self.assertEqual(type(ret).__name__, 'Figure')
 
-        array_4d = np.array(
-            [[[
-                [1, 2, 3],
-                [2, 3, 4]
-            ]]]
+        ret = self.output._plot_array(
+            np.array(
+                [[[
+                    [1, 2, 3],
+                    [2, 3, 4]
+                ]]]
+            )
         )
-        self.assertTrue(np.array_equal(array_4d, self.output._output_conv(array_4d)))
+        self.assertEqual(type(ret).__name__, 'Figure')
