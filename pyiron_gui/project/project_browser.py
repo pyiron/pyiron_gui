@@ -194,9 +194,49 @@ class MurnaghanWrapper(BaseWrapper):
     def __init__(self, pyi_obj, project, rel_path=""):
         super().__init__(pyi_obj, project, rel_path=rel_path)
         self._type = 'murnaghan'
+        self._option_widgets = None
+        self._options = {
+            "fit_type": self._wrapped_object.input['fit_type'],
+            "fit_order": 3  # self._wrapped_object.input['fit_order']
+        }
+        self._init_option_widgets()
+
+    def _init_option_widgets(self):
+        self._option_widgets = {
+            "fit_type": widgets.Dropdown(value=self._options['fit_type'],
+                                         options=['polynomial', 'birch', 'birchmurnaghan',
+                                                  'murnaghan', 'pouriertarantola', 'vinet'],
+                                         description='Fit type',
+                                         description_tooltip='Type of the energy-volume curve fit.'),
+            "fit_order": widgets.IntText(value=self._options['fit_order'],
+                                         description='Fit order',
+                                         description_tooltip="Order of the polynomial for 'polynomial' fits, "
+                                                             "ignored otherwise")
+        }
+
+    @property
+    def option_representation(self):
+        """ipywidet to change the options for the self_representation"""
+        return widgets.VBox([self._option_widgets['fit_type'], self._option_widgets['fit_order']])
+
+    def _parse_option_widgets(self):
+        for key in self._options.keys():
+            self._options[key] = self._option_widgets[key].value
 
     def self_representation(self):
         plt.ioff()
+        self._parse_option_widgets()
+
+        if self._options['fit_type'] == "polynomial" and (
+                self._wrapped_object.input['fit_type'] != "polynomial" or
+                self._wrapped_object.input['fit_order'] != self._options['fit_order']
+        ):
+            self._wrapped_object.fit_polynomial(fit_order=self._options["fit_order"])
+        elif self._options['fit_type'] != "polynomial" and (
+            self._wrapped_object.input['fit_type'] != self._options['fit_type']
+        ):
+            self._wrapped_object._fit_eos_general(fittype=self._options['fit_type'])
+
         self._wrapped_object.plot()
 
 
