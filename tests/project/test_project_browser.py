@@ -151,6 +151,7 @@ class TestDisplayOutputGUI(TestWithProject):
         self.assertEqual(type(tiff_img).__name__, 'TiffImageFile')
         ret = self.output._output_conv(tiff_img)
         self.assertEqual(type(ret).__name__, 'Image')
+        del tiff_img
         os.remove(img_file)
 
     def test__plot_array(self):

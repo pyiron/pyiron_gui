@@ -128,19 +128,20 @@ class AtomsWrapper(BaseWrapper):
         check_box_layout = widgets.Layout(width='auto', margin='0px 0px 0px -50px')
         self._option_widgets = {
             'camera': widgets.Dropdown(options=['perspective', 'orthographic'], value=self._options['camera'],
-                                       layout=widgets.Layout(width='min-content'), toolip='Camera mode'),
+                                       layout=widgets.Layout(width='min-content'), description_tooltip='Camera mode'),
             'particle_size': widgets.FloatSlider(value=self._options['particle_size'],
                                                  min=0.1, max=5.0, step=0.1, readout_format='.1f',
                                                  description="atom size",
                                                  layout=widgets.Layout(width='60%')),
             'cell': widgets.Checkbox(description='cell', layout=check_box_layout,
                                      value=self._options['cell'],
-                                     tooltip='Show cell if checked'),
+                                     description_tooltip='Show cell if checked'),
             'axes': widgets.Checkbox(description='axes', layout=check_box_layout,
                                      value=self._options['axes'],
-                                     tooltip='Show axes if checked'),
+                                     description_tooltip='Show axes if checked'),
             'reset_view': widgets.Checkbox(description='reset view', layout=check_box_layout,
-                                           value=self._options['reset_view'], tooltip='Reset view if checked')
+                                           value=self._options['reset_view'],
+                                           description_tooltip='Reset view if checked')
         }
 
     @property
