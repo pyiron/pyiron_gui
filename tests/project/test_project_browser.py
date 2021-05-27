@@ -22,6 +22,23 @@ class TestPyironWrapper(TestWithProject):
         self.pw_atoms = PyironWrapper(fe, self.project)
         ref_job = self.project.create.job.Lammps('ref')
         murn = ref_job.create_job('Murnaghan', 'murn')
+        murn.structure = fe
+        # mock murnaghan run with data from:
+        #   ref_job = pr.create.job.Lammps('Lammps')
+        #   ref_job.structure = pr.create_structure('Al','fcc', 4.0).repeat(3)
+        #   ref_job.potential = '1995--Angelo-J-E--Ni-Al-H--LAMMPS--ipr1'
+        #   murn = ref_job.create_job(ham.job_type.Murnaghan, 'murn')
+        #   murn.run()
+        energies = np.array([-88.23691773, -88.96842984, -89.55374317, -90.00642629,
+                             -90.33875009, -90.5618246, -90.68571886, -90.71957679,
+                             -90.67170222, -90.54964935, -90.36029582])
+        volume = np.array([388.79999999, 397.44, 406.08, 414.71999999,
+                           423.35999999, 431.99999999, 440.63999999, 449.27999999,
+                           457.92, 466.55999999, 475.19999999])
+        murn._hdf5["output/volume"] = volume
+        murn._hdf5["output/energy"] = energies
+        murn._hdf5["output/equilibrium_volume"] = 448.4033384110422
+        murn.status.finished = True
         self.pw_murn = PyironWrapper(murn, self.project.open('sub'))
 
     def test___init__(self):
@@ -72,12 +89,16 @@ class TestPyironWrapper(TestWithProject):
 
     def test_self_representation(self):
         self.assertIs(self.pw_str.self_representation(), None)
-        self.assertRaises(KeyError, self.pw_murn.self_representation)
         try:
             plot = self.pw_atoms.self_representation()
             self.assertEqual(type(plot).__name__, 'NGLWidget')
         except ImportError:
             pass
+        try:
+            self.pw_murn.self_representation()
+        except Exception:
+            self.fail("Self representation of a Murnaghan wrapper should work.")
+
 
 
 class TestDisplayOutputGUI(TestWithProject):
