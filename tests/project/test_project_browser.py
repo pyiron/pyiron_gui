@@ -4,6 +4,7 @@
 
 import os
 
+import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import nbformat
 import numpy as np
@@ -34,6 +35,8 @@ class TestBaseWrapper(TestWithProject):
 
     def setUp(self):
         self.pw_str = BaseWrapper("string_obj.ext", self.project)
+        self.pw_str_w_rel_path = BaseWrapper("string_obj.ext", self.project, rel_path="some/random/path")
+        self.broken_proj_pw_str = BaseWrapper("string_obj.ext", None)
 
     def test___init__(self):
         self.assertEqual(self.pw_str._wrapped_object, "string_obj.ext")
@@ -43,6 +46,9 @@ class TestBaseWrapper(TestWithProject):
 
     def test_path(self):
         self.assertEqual(self.pw_str.path, self.project.path)
+        self.assertEqual(self.pw_str_w_rel_path.path, os.path.join(self.project.path, 'some/random/path'))
+        with self.assertRaises(AttributeError):
+            print(self.broken_proj_pw_str.path)
 
     def test_list_nodes(self):
         msg = "Each object in the PyironWrapper should have list_nodes()"
@@ -66,6 +72,8 @@ class TestBaseWrapper(TestWithProject):
         self.assertEqual(self.pw_str[0], 's', msg='Get item should return the appropriate item from the wrapped object')
         self.assertIs(self.pw_str['.'], self.project,
                       msg="For a TypeError of the wrapped object a path like item is assumed.")
+        super_proj = self.pw_str['..']
+        self.assertEqual(os.path.normpath(super_proj.path), os.path.split(os.path.normpath(self.project.path))[0])
 
     def test_self_representation(self):
         self.assertIs(self.pw_str.self_representation(), None)
@@ -98,11 +106,30 @@ class TestAtomsWrapper(TestWithProject):
                       msg='Atoms does not have a project; should return pw._project')
 
     def test_self_representation(self):
+        # No nglview on github CI, thus:
         try:
             plot = self.pw_atoms.self_representation()
             self.assertEqual(type(plot).__name__, 'NGLWidget')
+            # Needed to populate the _camera_orientation:
+            plot.display()
+            widget_state_orient_init = plot.get_state()['_camera_orientation']
+
+            plot.control.translate([1., 0, 0])
+            widget_state_orient = plot.get_state()['_camera_orientation']
+            replot = self.pw_atoms.self_representation()
+            self.assertEqual(widget_state_orient, replot.get_state()['_camera_orientation'])
+
+            self.pw_atoms._option_widgets['reset_view'].value = True
+            replot = self.pw_atoms.self_representation()
+            self.assertEqual(widget_state_orient_init, replot.get_state()['_camera_orientation'])
         except ImportError:
             pass
+
+    def test__parse_option_widgets(self):
+        self.assertEqual(1.0, self.pw_atoms._options['particle_size'])
+        self.pw_atoms._option_widgets['particle_size'].value = 2.5
+        self.pw_atoms._parse_option_widgets()
+        self.assertEqual(2.5, self.pw_atoms._options['particle_size'])
 
 
 class TestMurnaghanWrapper(TestWithProject):
@@ -148,6 +175,11 @@ class TestMurnaghanWrapper(TestWithProject):
         msg = "Each object in the PyironWrapper should have list_nodes()"
         self.assertEqual(self.pw_murn.list_nodes(), [], msg=msg)
 
+    def test_option_representation(self):
+        option_repr = self.pw_murn.option_representation
+        self.assertEqual('polynomial', option_repr.children[0].value)
+        self.assertEqual(3, option_repr.children[1].value)
+
     def test_name(self):
         self.assertEqual(self.pw_murn.name, 'murnaghan')
 
@@ -156,10 +188,19 @@ class TestMurnaghanWrapper(TestWithProject):
         self.assertEqual(self.pw_murn.project.path, self.project.path)
 
     def test_self_representation(self):
-        try:
-            self.pw_murn.self_representation()
-        except Exception:
-            self.fail("Self representation of a Murnaghan wrapper should work.")
+        self.pw_murn.self_representation()
+        self.assertTrue(np.isclose(-90.71969974284912, self.pw_murn.equilibrium_energy))
+        self.assertTrue(np.isclose(448.1341230545222, self.pw_murn.equilibrium_volume))
+
+        self.pw_murn._option_widgets['fit_order'].value = 2
+        self.pw_murn.self_representation()
+        self.assertTrue(np.isclose(-90.76380033222287, self.pw_murn.equilibrium_energy))
+        self.assertTrue(np.isclose(449.1529040727273, self.pw_murn.equilibrium_volume))
+
+        self.pw_murn._option_widgets['fit_type'].value = 'birchmurnaghan'
+        self.pw_murn.self_representation()
+        self.assertTrue(np.isclose(-90.72005405262217, self.pw_murn.equilibrium_energy))
+        self.assertTrue(np.isclose(448.41909755611437, self.pw_murn.equilibrium_volume))
 
 
 class TestDisplayOutputGUI(TestWithProject):
@@ -186,6 +227,29 @@ class TestDisplayOutputGUI(TestWithProject):
         except ImportError:
             pass
 
+    def test_display_numpy_array(self):
+        array = np.array([[[[1, 0, 0]]]])
+        self.output.display(array)
+        self.assertEqual(len(self.output._plot_options['idx']), 2)
+
+        self.output._array_plot_options(array)
+        self.output._plot_options["dim"].value = [0, 1, 2]
+
+    def test__click_button(self):
+        array = np.array([0, 1, 1])
+        self.output.display(array)
+
+        button = widgets.Button(description='Show data')
+        button.obj = array
+        self.output._click_button(button)
+        self.assertEqual(button.description, 'Show plot')
+
+        button.description = "Re-plot"
+        self.output._click_button(button)
+
+        button.description = "else"
+        self.output._click_button(button)
+
     def test__output_conv_ipynb(self):
         nb_cell = nbformat.NotebookNode(
             {
@@ -210,6 +274,7 @@ class TestDisplayOutputGUI(TestWithProject):
         self.assertEqual(type(ret).__name__, 'DataFrame')
 
     def test__output_conv_number(self):
+        self.output._debug = True
         self.assertEqual(self.output._output_conv(1), '1')
         self.assertEqual(self.output._output_conv(1.0), '1.0')
 
@@ -236,11 +301,25 @@ class TestDisplayOutputGUI(TestWithProject):
         del tiff_img
         os.remove(img_file)
 
+    def test__output_conv__repr_html_(self):
+        class AnyClass:
+            def _repr_html_(self):
+                pass
+        self.assertIsInstance(self.output._output_conv(AnyClass()), AnyClass)
+
+    def test__output_conv__else(self):
+        class AnyClass:
+            pass
+        self.assertIsInstance(self.output._output_conv(AnyClass()), AnyClass)
+
     def test__plot_array(self):
         ret = self.output._plot_array(np.array([1, 2, 3]))
         self.assertEqual(type(ret).__name__, 'Figure')
 
         ret = self.output._plot_array(np.array([[1, 2], [2, 3]]))
+        self.assertEqual(type(ret).__name__, 'Figure')
+
+        ret = self.output._plot_array(np.array([[1, 2, 3]]))
         self.assertEqual(type(ret).__name__, 'Figure')
 
         ret = self.output._plot_array(
