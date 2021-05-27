@@ -232,8 +232,17 @@ class TestDisplayOutputGUI(TestWithProject):
         self.output.display(array)
         self.assertEqual(len(self.output._plot_options['idx']), 2)
 
-        self.output._array_plot_options(array)
+
+    def test__plot_array_with_options(self):
+        array_4d = np.array([[[[1, 0, 0]]]])
+        self.output._array_plot_options(array_4d)
         self.output._plot_options["dim"].value = [0, 1, 2]
+        self.output._plot_array(array_4d)
+
+        array_3d = np.array([[[1, 0, 0]]])
+        self.output._array_plot_options(array_3d)
+        self.output._plot_options["dim"].value = [0, 2]
+        self.output._plot_array(array_3d)
 
     def test__click_button(self):
         array = np.array([0, 1, 1])
