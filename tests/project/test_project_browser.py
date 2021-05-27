@@ -11,16 +11,107 @@ import numpy as np
 from pyiron_atomistics import Atoms
 from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
 from pyiron_base._tests import TestWithProject
-from pyiron_gui.project.project_browser import PyironWrapper, DisplayOutputGUI
+from pyiron_gui.project.project_browser import (PyironWrapper, DisplayOutputGUI, BaseWrapper, MurnaghanWrapper,
+                                                AtomsWrapper)
 
 
 class TestPyironWrapper(TestWithProject):
 
-    def setUp(self):
-        self.pw_str = PyironWrapper("string_obj.ext", self.project)
+    def test___new__str(self):
+        self.assertIsInstance(PyironWrapper("string_obj.ext", self.project), BaseWrapper)
+
+    def test___new__atoms(self):
         fe = Atoms(cell=[4, 4, 4], elements=['Fe', 'Fe'], positions=[[0, 0, 0], [2, 2, 2]], pbc=True)
-        self.pw_atoms = PyironWrapper(fe, self.project)
+        self.assertIsInstance(PyironWrapper(fe, self.project), AtomsWrapper)
+
+    def test___new__murn(self):
         ref_job = self.project.create.job.Lammps('ref')
+        murn = ref_job.create_job('Murnaghan', 'murn')
+        self.assertIsInstance(PyironWrapper(murn, self.project.open('sub')), MurnaghanWrapper)
+
+
+class TestBaseWrapper(TestWithProject):
+
+    def setUp(self):
+        self.pw_str = BaseWrapper("string_obj.ext", self.project)
+
+    def test___init__(self):
+        self.assertEqual(self.pw_str._wrapped_object, "string_obj.ext")
+
+    def test_has_self_representation(self):
+        self.assertFalse(self.pw_str.has_self_representation)
+
+    def test_path(self):
+        self.assertEqual(self.pw_str.path, self.project.path)
+
+    def test_list_nodes(self):
+        msg = "Each object in the PyironWrapper should have list_nodes()"
+        self.assertEqual(self.pw_str.list_nodes(), [], msg=msg)
+
+    def test___getattr__(self):
+        self.assertTrue(self.pw_str.endswith('.ext'), msg="Unknown attributes should be passed to the wrapped object.")
+
+    def test_name(self):
+        self.assertIs(self.pw_str.name, None,
+                      msg='str does not have a defined self representation, thus should be None')
+
+    def test___repr__(self):
+        self.assertEqual(repr(self.pw_str), "'string_obj.ext'")
+
+    def test_project(self):
+        self.assertIs(self.pw_str.project, self.project,
+                      msg='A sting does not have a project and pw should return the project')
+
+    def test___getitem__(self):
+        self.assertEqual(self.pw_str[0], 's', msg='Get item should return the appropriate item from the wrapped object')
+        self.assertIs(self.pw_str['.'], self.project,
+                      msg="For a TypeError of the wrapped object a path like item is assumed.")
+
+    def test_self_representation(self):
+        self.assertIs(self.pw_str.self_representation(), None)
+
+
+class TestAtomsWrapper(TestWithProject):
+
+    def setUp(self):
+        fe = Atoms(cell=[4, 4, 4], elements=['Fe', 'Fe'], positions=[[0, 0, 0], [2, 2, 2]], pbc=True)
+        self.pw_atoms = AtomsWrapper(fe, self.project)
+
+    def test___init__(self):
+        self.assertIsInstance(self.pw_atoms._wrapped_object, Atoms)
+
+    def test_has_self_representation(self):
+        self.assertTrue(self.pw_atoms.has_self_representation)
+
+    def test_path(self):
+        self.assertEqual(self.pw_atoms.path, self.project.path)
+
+    def test_list_nodes(self):
+        msg = "Each object in the PyironWrapper should have list_nodes()"
+        self.assertEqual(self.pw_atoms.list_nodes(), [], msg=msg)
+
+    def test_name(self):
+        self.assertEqual(self.pw_atoms.name, 'structure')
+
+    def test_project(self):
+        self.assertIs(self.pw_atoms.project, self.project,
+                      msg='Atoms does not have a project; should return pw._project')
+
+    def test_self_representation(self):
+        try:
+            plot = self.pw_atoms.self_representation()
+            self.assertEqual(type(plot).__name__, 'NGLWidget')
+        except ImportError:
+            pass
+
+
+class TestMurnaghanWrapper(TestWithProject):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        fe = Atoms(cell=[4, 4, 4], elements=['Fe', 'Fe'], positions=[[0, 0, 0], [2, 2, 2]], pbc=True)
+        ref_job = cls.project.create.job.Lammps('ref')
         murn = ref_job.create_job('Murnaghan', 'murn')
         murn.structure = fe
         # mock murnaghan run with data from:
@@ -39,66 +130,36 @@ class TestPyironWrapper(TestWithProject):
         murn._hdf5["output/energy"] = energies
         murn._hdf5["output/equilibrium_volume"] = 448.4033384110422
         murn.status.finished = True
-        self.pw_murn = PyironWrapper(murn, self.project.open('sub'))
+        cls.murn = murn
+
+    def setUp(self):
+        self.pw_murn = MurnaghanWrapper(self.murn, self.project)
 
     def test___init__(self):
-        self.assertEqual(self.pw_str._wrapped_object, "string_obj.ext")
-        self.assertIsInstance(self.pw_atoms._wrapped_object, Atoms)
         self.assertIsInstance(self.pw_murn._wrapped_object, Murnaghan)
 
     def test_has_self_representation(self):
-        self.assertFalse(self.pw_str.has_self_representation)
-        self.assertTrue(self.pw_atoms.has_self_representation)
         self.assertTrue(self.pw_murn.has_self_representation)
 
     def test_path(self):
-        self.assertEqual(self.pw_str.path, self.project.path)
-        self.assertEqual(self.pw_atoms.path, self.project.path)
         self.assertEqual(self.pw_murn.path, self.project.path + 'murn')
 
     def test_list_nodes(self):
         msg = "Each object in the PyironWrapper should have list_nodes()"
-        self.assertEqual(self.pw_str.list_nodes(), [], msg=msg)
-        self.assertEqual(self.pw_atoms.list_nodes(), [], msg=msg)
         self.assertEqual(self.pw_murn.list_nodes(), [], msg=msg)
 
-    def test___getattr__(self):
-        self.assertTrue(self.pw_str.endswith('.ext'), msg="Unknown attributes should be passed to the wrapped object.")
-
     def test_name(self):
-        self.assertIs(self.pw_str.name, None,
-                      msg='str does not have a defined self representation, thus should be None')
-        self.assertEqual(self.pw_atoms.name, 'structure')
         self.assertEqual(self.pw_murn.name, 'murnaghan')
 
-    def test___repr__(self):
-        self.assertEqual(repr(self.pw_str), "'string_obj.ext'")
-
     def test_project(self):
-        self.assertIs(self.pw_str.project, self.project,
-                      msg='A sting does not have a project and pw should return the project')
-        self.assertIs(self.pw_atoms.project, self.project,
-                      msg='Atoms does not have a project; should return pw._project')
         self.assertFalse(self.pw_murn.project is self.project, msg="murn.project should be a copy of the project")
         self.assertEqual(self.pw_murn.project.path, self.project.path)
 
-    def test___getitem__(self):
-        self.assertEqual(self.pw_str[0], 's', msg='Get item should return the appropriate item from the wrapped object')
-        self.assertIs(self.pw_str['.'], self.project,
-                      msg="For a TypeError of the wrapped object a path like item is assumed.")
-
     def test_self_representation(self):
-        self.assertIs(self.pw_str.self_representation(), None)
-        try:
-            plot = self.pw_atoms.self_representation()
-            self.assertEqual(type(plot).__name__, 'NGLWidget')
-        except ImportError:
-            pass
         try:
             self.pw_murn.self_representation()
         except Exception:
             self.fail("Self representation of a Murnaghan wrapper should work.")
-
 
 
 class TestDisplayOutputGUI(TestWithProject):
