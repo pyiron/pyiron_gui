@@ -53,8 +53,6 @@ class BaseWrapper:
     def __init__(self, pyi_obj, project, rel_path=""):
         self._wrapped_object = pyi_obj
         self._project = project
-        if not hasattr(pyi_obj, 'path'):
-            self._path = self._project.path
         self._rel_path = rel_path
         # print("init:" + self.path)
         self._type = None
