@@ -4,6 +4,7 @@
 
 import os
 import posixpath
+from functools import singledispatch
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
@@ -30,20 +31,17 @@ __status__ = "development"
 __date__ = "Feb 02, 2021"
 
 
-class PyironWrapper:
+@singledispatch
+def PyironWrapper(py_obj, project, rel_path=""):
+    return BaseWrapper(py_obj, project, rel_path="")
 
-    _with_self_representation = {
-        "structure": Atoms,
-        "murnaghan": Murnaghan
-    }
+@PyironWrapper.register
+def _(py_obj: Atoms, project, rel_path=""):
+    return AtomsWrapper(pyi_obj, project, rel_path=rel_path)
 
-    def __new__(cls, pyi_obj, project, rel_path=""):
-        if isinstance(pyi_obj, Atoms):
-            return AtomsWrapper(pyi_obj, project, rel_path=rel_path)
-        elif isinstance(pyi_obj, Murnaghan):
-            return MurnaghanWrapper(pyi_obj, project, rel_path=rel_path)
-        else:
-            return BaseWrapper(pyi_obj, project, rel_path="")
+@PyironWrapper.register
+def _(pyi_obj: Murnaghan, project, rel_path=""):
+    return MurnaghanWrapper(pyi_obj, project, rel_path=rel_path)
 
 
 class BaseWrapper:
