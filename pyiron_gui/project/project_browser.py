@@ -33,15 +33,17 @@ __date__ = "Feb 02, 2021"
 
 @singledispatch
 def PyironWrapper(py_obj, project, rel_path=""):
-    return BaseWrapper(py_obj, project, rel_path="")
+    return BaseWrapper(py_obj, project, rel_path=rel_path)
+
 
 @PyironWrapper.register
 def _(py_obj: Atoms, project, rel_path=""):
-    return AtomsWrapper(pyi_obj, project, rel_path=rel_path)
+    return AtomsWrapper(py_obj, project, rel_path=rel_path)
+
 
 @PyironWrapper.register
-def _(pyi_obj: Murnaghan, project, rel_path=""):
-    return MurnaghanWrapper(pyi_obj, project, rel_path=rel_path)
+def _(py_obj: Murnaghan, project, rel_path=""):
+    return MurnaghanWrapper(py_obj, project, rel_path=rel_path)
 
 
 class BaseWrapper:
@@ -52,12 +54,7 @@ class BaseWrapper:
         self._wrapped_object = pyi_obj
         self._project = project
         self._rel_path = rel_path
-        # print("init:" + self.path)
-        self._type = None
-
-    @property
-    def has_self_representation(self):
-        return self._type is not None
+        self._name = None
 
     @staticmethod
     def _empty_list():
@@ -65,7 +62,7 @@ class BaseWrapper:
 
     @property
     def name(self):
-        return self._type
+        return self._name
 
     @property
     def project(self):
@@ -101,16 +98,60 @@ class BaseWrapper:
     def __repr__(self):
         return repr(self._wrapped_object)
 
-    def self_representation(self):
-        """Self representation of the wrapped object if known, else None is returned."""
-        return None
+    @property
+    def gui(self):
+        return ObjectWidget(self).gui
 
 
 class AtomsWrapper(BaseWrapper):
     def __init__(self, pyi_obj, project, rel_path=""):
         super().__init__(pyi_obj, project, rel_path=rel_path)
-        self._type = 'structure'
+        self._name = 'structure'
+
+    @property
+    def gui(self):
+        return AtomsWidget(self).gui
+
+
+class MurnaghanWrapper(BaseWrapper):
+    def __init__(self, pyi_obj, project, rel_path=""):
+        super().__init__(pyi_obj, project, rel_path=rel_path)
+        self._name = 'murnaghan'
+
+    @property
+    def gui(self):
+        return MurnaghanWidget(self).gui
+
+
+class ObjectWidget:
+    def __init__(self, obj):
+        self._obj = obj
+        self._output = widgets.Output()
+        self._box = widgets.VBox()
+
+    def refresh(self):
+        self._output.clear_output()
+        with self._output:
+            print(" ")
+            # display(self._obj)
+        self._box.children = tuple([self._output])
+
+    @property
+    def gui(self):
+        self.refresh()
+        return self._box
+
+    def _ipython_display_(self):
+        display(self.gui)
+
+
+class AtomsWidget(ObjectWidget):
+    def __init__(self, atoms_object):
+        super().__init__(atoms_object)
         self._ngl_widget = None
+        self._apply_button = widgets.Button(description="Apply")
+        self._apply_button.on_click(self._on_click_apply_button)
+        self._header = widgets.HBox()
         self._options = {
             'particle_size': 1.0,
             'camera': 'orthographic',
@@ -120,8 +161,26 @@ class AtomsWrapper(BaseWrapper):
         }
         self._init_option_widgets()
 
+    def _on_click_apply_button(self, b):
+        self.refresh()
+
+    def refresh(self):
+        self._update_header()
+        self._update_box()
+
+    def _update_header(self):
+        self._header.children = tuple([self._option_representation, self._apply_button])
+
+    def _update_box(self):
+        self._update_ngl_widget()
+        self._output.clear_output()
+        with self._output:
+            display(self._ngl_widget)
+        self._box.children = tuple([self._header, self._output])
+
     def _init_option_widgets(self):
         check_box_layout = widgets.Layout(width='auto', margin='0px 0px 0px -50px')
+
         self._option_widgets = {
             'camera': widgets.Dropdown(options=['perspective', 'orthographic'], value=self._options['camera'],
                                        layout=widgets.Layout(width='min-content'), description_tooltip='Camera mode'),
@@ -141,7 +200,7 @@ class AtomsWrapper(BaseWrapper):
         }
 
     @property
-    def option_representation(self):
+    def _option_representation(self):
         """ipywidet to change the options for the self_representation"""
         widget_list = list(self._option_widgets.values())
         return widgets.VBox([
@@ -153,14 +212,14 @@ class AtomsWrapper(BaseWrapper):
         for key in self._options.keys():
             self._options[key] = self._option_widgets[key].value
 
-    def self_representation(self):
+    def _update_ngl_widget(self):
         self._parse_option_widgets()
         if self._ngl_widget is not None:
             orient = self._ngl_widget.get_state()['_camera_orientation']
         else:
             orient = []
 
-        self._ngl_widget = self._wrapped_object.plot3d(
+        self._ngl_widget = self._obj.plot3d(
             mode='NGLview',
             show_cell=self._options['cell'],
             show_axes=self._options['axes'],
@@ -184,19 +243,30 @@ class AtomsWrapper(BaseWrapper):
         )
         if not self._options['reset_view'] and len(orient) == 16:
             self._ngl_widget.control.orient(orient)
-        return self._ngl_widget
 
 
-class MurnaghanWrapper(BaseWrapper):
-    def __init__(self, pyi_obj, project, rel_path=""):
-        super().__init__(pyi_obj, project, rel_path=rel_path)
-        self._type = 'murnaghan'
+class MurnaghanWidget(ObjectWidget):
+    def __init__(self, murnaghan_object):
+        super().__init__(murnaghan_object)
         self._option_widgets = None
+        self._header = widgets.HBox()
+        self._apply_button = widgets.Button(description="Apply")
+        self._apply_button.on_click(self._on_click_apply_button)
         self._options = {
-            "fit_type": self._wrapped_object.input['fit_type'],
-            "fit_order": 3  # self._wrapped_object.input['fit_order']
+            "fit_type": self._obj.input['fit_type'],
+            "fit_order": 3  # self._murnaghan_object.input['fit_order']
         }
         self._init_option_widgets()
+
+    def _on_click_apply_button(self, b):
+        self.refresh()
+
+    def refresh(self):
+        self._update_header()
+        self._update_box()
+
+    def _update_header(self):
+        self._header.children = tuple([self._option_representation, self._apply_button])
 
     def _init_option_widgets(self):
         self._option_widgets = {
@@ -212,7 +282,7 @@ class MurnaghanWrapper(BaseWrapper):
         }
 
     @property
-    def option_representation(self):
+    def _option_representation(self):
         """ipywidet to change the options for the self_representation"""
         return widgets.VBox([self._option_widgets['fit_type'], self._option_widgets['fit_order']])
 
@@ -220,21 +290,178 @@ class MurnaghanWrapper(BaseWrapper):
         for key in self._options.keys():
             self._options[key] = self._option_widgets[key].value
 
-    def self_representation(self):
-        plt.ioff()
-        self._parse_option_widgets()
+    def _update_box(self):
+        self._output.clear_output()
+        with self._output:
+            plt.ioff()
+            self._parse_option_widgets()
 
-        if self._options['fit_type'] == "polynomial" and (
-                self._wrapped_object.input['fit_type'] != "polynomial" or
-                self._wrapped_object.input['fit_order'] != self._options['fit_order']
-        ):
-            self._wrapped_object.fit_polynomial(fit_order=self._options["fit_order"])
-        elif self._options['fit_type'] != "polynomial" and (
-            self._wrapped_object.input['fit_type'] != self._options['fit_type']
-        ):
-            self._wrapped_object._fit_eos_general(fittype=self._options['fit_type'])
+            if self._options['fit_type'] == "polynomial" and (
+                    self._obj.input['fit_type'] != "polynomial" or
+                    self._obj.input['fit_order'] != self._options['fit_order']
+            ):
+                self._obj.fit_polynomial(fit_order=self._options["fit_order"])
+            elif self._options['fit_type'] == "birchmurnaghan" and (
+                    self._obj.input['fit_type'] != self._options['fit_type']
+            ):
+                self._obj.fit_birch_murnaghan()
+            elif self._options['fit_type'] == "murnaghan" and (
+                self._obj.input['fit_type'] != self._options['fit_type']
+            ):
+                self._obj.fit_murnaghan()
+            elif self._options['fit_type'] == "vinet" and (
+                        self._obj.input['fit_type'] != self._options['fit_type']
+            ):
+                self._obj.fit_vinet()
+            elif self._obj.input['fit_type'] != self._options['fit_type']:
+                self._obj._fit_eos_general(fittype=self._options['fit_type'])
 
-        self._wrapped_object.plot()
+            self._obj.plot()
+
+        self._box.children = tuple([self._header, self._output])
+
+
+class NumpyWidget(ObjectWidget):
+    def __init__(self, numpy_array):
+        super().__init__(numpy_array)
+        self._call_hist = []
+        self._fig = None
+        self._ax = None
+        self._plot_options = None
+        self._init_plot_option_widgets()
+
+        self._header = widgets.HBox()
+
+        self._show_plot_button = widgets.Button(description="Show plot")
+        self._show_plot_button.on_click(self._click_replot_button)
+        self._show_plot_button.tooltip = "Show plot representation"
+
+        self._replot_button = widgets.Button()
+        if self._obj.ndim < 3:
+            self._replot_button.description = "Replot"
+        else:
+            self._replot_button.description = "Apply"
+        self._replot_button.on_click(self._click_replot_button)
+
+        self._show_data_button = widgets.Button(description="Show data")
+        self._show_data_button.on_click(self._click_show_data_button)
+        self._show_data_button.tooltip = "Show data representation"
+
+        self._plot_array()
+        self._show_plot()
+        self.refresh()
+        self._call_hist.append("init")
+
+    def _click_show_data_button(self, b):
+        self._show_data_only()
+        self._call_hist.append("_click_show_data_button")
+
+    def _show_data_only(self):
+        self._header.children = tuple([self._show_plot_button])
+        self._output.clear_output()
+        with self._output:
+            display(self._obj)
+        self.refresh()
+        self._call_hist.append("_show_data_only")
+
+    def _click_replot_button(self, b):
+        self._plot_array()
+        self._show_plot()
+        self._call_hist.append("_click_replot_button")
+
+    def _show_plot(self):
+        if self._obj.ndim >= 3:
+            self._header.children = tuple([
+                self._option_representation,
+                widgets.VBox([self._show_data_button, self._replot_button])
+            ])
+        else:
+            self._header.children = tuple([widgets.HBox([self._show_data_button, self._replot_button])])
+        self.refresh()
+        self._call_hist.append("_update_header")
+
+    def refresh(self):
+        self._box.children = tuple([self._header, self._output])
+        self._call_hist.append("refresh")
+
+    @property
+    def _option_representation(self):
+        """Return ipywidget.Vbox to change plot options"""
+        box = widgets.VBox()
+        if self._obj.ndim >= 3:
+            box.children = tuple([
+                widgets.HBox([self._plot_options['dim']]),
+                widgets.HBox(self._plot_options['idx'])
+            ])
+        self._call_hist.append("Used _option_representation")
+        return box
+
+    def _init_plot_option_widgets(self):
+        if self._obj.ndim <3:
+            return
+        numpy_array = self._obj
+        shape = numpy_array.shape
+        fixed_idx_list = []
+        dim_widget = widgets.SelectMultiple(description='Plot-Dim', value=[0, 1],
+                                            options=range(numpy_array.ndim),
+                                            rows=3,
+                                            description_tooltip='Plot dimensions of the array '
+                                                                '(exactly 2 choices required)')
+
+        for dim in range(numpy_array.ndim-2):
+            fixed_idx_list.append(widgets.IntText(description=f'Fixed index {dim}', value=0,
+                                                  layout=widgets.Layout(width='60%'),
+                                                  description_tooltip=f'Fixed index of the {dim}th not chosen '
+                                                                      f'dimension; the shape of the array is {shape}.'))
+        if numpy_array.ndim == 3:
+            fixed_idx_list[0].description = 'Fixed index'
+            fixed_idx_list[0].description_tooltip = f'Fixed index of the not chosen dimension; the shape of the ' \
+                                                    f'array is {shape}'
+
+        self._plot_options = {'dim': dim_widget, 'idx': fixed_idx_list}
+        self._call_hist.append("_array_plot_widgets")
+
+    def _plot_array(self):
+        val = self._obj
+        if self._fig is None:
+            self._fig, self._ax = plt.subplots()
+        else:
+            self._ax.clear()
+
+        if val.ndim == 1:
+            self._ax.plot(val)
+        elif val.ndim == 2:
+            if len(val) == 1:
+                self._ax.plot(val[0])
+            else:
+                self._ax.plot(val)
+        elif self._plot_options is None:
+            slc = [0 for i in range(val.ndim)]
+            slc[0] = slice(None)
+            slc[1] = slice(None)
+            self._ax.plot(val[tuple(slc)])
+        else:
+            if len(self._plot_options['dim'].value) != 2:
+                print(f"Error: You need to select exactly two dimensions.")
+                return
+            slc = [None for i in range(val.ndim)]
+            i = 0
+            for index in range(val.ndim):
+                if index in self._plot_options['dim'].value:
+                    slc[index] = slice(None)
+                else:
+                    slc[index] = self._plot_options['idx'][i].value
+                    i += 1
+            self._ax.plot(val[tuple(slc)])
+
+        self._ax.relim()
+        self._ax.autoscale_view()
+
+        self._output.clear_output()
+        with self._output:
+            plt.ioff()
+            display(self._ax.figure)
+        self._call_hist.append("_plot_array")
 
 
 class DisplayOutputGUI:
@@ -245,9 +472,7 @@ class DisplayOutputGUI:
         self.box = widgets.VBox(*args, **kwargs)
         self.header = widgets.HBox()
         self.output = widgets.Output(layout=widgets.Layout(width='100%'))
-        self._plot_options = None
-        self.fig = None
-        self.ax = None
+        self._display_obj = None
         self._debug = False
         self.refresh()
 
@@ -274,69 +499,30 @@ class DisplayOutputGUI:
         self.output.clear_output(*args, **kwargs)
         self.refresh()
 
-    def _click_button(self, b):
-        self.output.clear_output()
-        if b.description == "Show data":
-            b.description = "Show plot"
-            b.tooltip = "Display the plotting representation"
-            self.header.children = tuple([b])
-            self.refresh()
-            with self.output:
-                display(b.obj)
-        elif b.description == "Re-plot":
-            with self.output:
-                plt.ioff()
-                display(self._plot_array(b.obj))
-        else:
-            self.display(obj=b.obj)
-
-    def _update_header(self, obj):
-        childs = []
-
-        button = None
-        if isinstance(obj, BaseWrapper) and hasattr(obj, 'option_representation'):
-            childs.append(obj.option_representation)
-            button = widgets.Button(description="Apply")
-        elif isinstance(obj, BaseWrapper) and obj.has_self_representation:
-            button = widgets.Button(description="Re-plot " + obj.name)
-        elif isinstance(obj, np.ndarray):
-            childs.append(self._array_plot_options(obj))
-            button = widgets.Button(description="Re-plot")
-            button.obj = obj
-            button.on_click(self._click_button)
-            childs.append(button)
-
-            button = widgets.Button(description="Show data", tooltip="Display the raw data representation.")
-
-        if button is not None:
-            button.obj = obj
-            button.on_click(self._click_button)
-            childs.append(button)
-
-        self.header.children = tuple(childs)
-
-        self.refresh()
-
     def display(self, obj, default_output=None):
-        self._update_header(obj)
+        if isinstance(obj, BaseWrapper):
+            self.display(obj.gui, default_output=default_output)
+        elif isinstance(obj, np.ndarray):
+            self.display(NumpyWidget(obj), default_output=default_output)
+        else:
+            self._display_obj = obj
+            self._display(default_output)
+
+    def _display(self, default_output):
         with self.output:
-            if obj is None and default_output is None:
+            if self._display_obj is None and default_output is None:
                 raise TypeError("Given 'obj' is of 'NoneType'.")
-            elif obj is None:
+            elif self._display_obj is None:
                 print(default_output)
-            elif isinstance(obj, BaseWrapper):
-                plt.ioff()
-                to_display = obj.self_representation()
-                if to_display is not None:
-                    display(to_display)
-            elif isinstance(obj, np.ndarray):
-                plt.ioff()
-                display(self._plot_array(obj))
+            elif isinstance(self._display_obj, ObjectWidget):
+                display(self._display_obj.gui)
             else:
                 plt.ioff()
-                display(self._output_conv(obj))
+                display(self._output_conv())
 
-    def _output_conv(self, obj):
+    def _output_conv(self):
+        obj = self._display_obj
+
         eol = os.linesep
         if self._debug:
             print('node: ', type(obj))
@@ -374,74 +560,6 @@ class DisplayOutputGUI:
             return data_cp
         else:
             return obj
-
-    def _array_plot_options(self, numpy_array):
-        """Return List of ipywidgets to change plot options"""
-        box = widgets.VBox()
-        if numpy_array.ndim >= 3:
-            self._array_plot_widgets(numpy_array=numpy_array)
-            box.children = tuple([
-                widgets.HBox([self._plot_options['dim']]),
-                widgets.HBox(self._plot_options['idx'])
-            ])
-        return box
-
-    def _array_plot_widgets(self, numpy_array):
-        shape = numpy_array.shape
-        fixed_idx_list = []
-        dim_widget = widgets.SelectMultiple(description='Plot-Dim', value=[0, 1],
-                                            options=range(numpy_array.ndim),
-                                            rows=3,
-                                            description_tooltip='Plot dimensions of the array '
-                                                                '(exactly 2 choices required)')
-
-        for dim in range(numpy_array.ndim-2):
-            fixed_idx_list.append(widgets.IntText(description=f'Fixed index {dim}', value=0,
-                                                  layout=widgets.Layout(width='60%'),
-                                                  description_tooltip=f'Fixed index of the {dim}th not chosen '
-                                                                      f'dimension; the shape of the array is {shape}.'))
-        if numpy_array.ndim == 3:
-            fixed_idx_list[0].description = 'Fixed index'
-            fixed_idx_list[0].description_tooltip = f'Fixed index of the not chosen dimension; the shape of the ' \
-                                                    f'array is {shape}'
-
-        self._plot_options = {'dim': dim_widget, 'idx': fixed_idx_list}
-
-    def _plot_array(self, val):
-        if self.fig is None:
-            self.fig, self.ax = plt.subplots()
-        else:
-            self.ax.clear()
-
-        if val.ndim == 1:
-            self.ax.plot(val)
-        elif val.ndim == 2:
-            if len(val) == 1:
-                self.ax.plot(val[0])
-            else:
-                self.ax.plot(val)
-        elif self._plot_options is None:
-            slc = [0 for i in range(val.ndim)]
-            slc[0] = slice(None)
-            slc[1] = slice(None)
-            self.ax.plot(val[tuple(slc)])
-        else:
-            if len(self._plot_options['dim'].value) != 2:
-                print(f"Error: You need to select exactly two dimensions.")
-                return
-            slc = [None for i in range(val.ndim)]
-            i = 0
-            for index in range(val.ndim):
-                if index in self._plot_options['dim'].value:
-                    slc[index] = slice(None)
-                else:
-                    slc[index] = self._plot_options['idx'][i].value
-                    i += 1
-            self.ax.plot(val[tuple(slc)])
-
-        self.ax.relim()
-        self.ax.autoscale_view()
-        return self.ax.figure
 
 
 class ProjectBrowser:
@@ -599,7 +717,7 @@ class ProjectBrowser:
     def refresh(self):
         """Refresh the project browser."""
         self.output.clear_output(True)
-        if hasattr(self.project, 'self_representation'):
+        if isinstance(self.project, BaseWrapper):
             # print(f"has self_repr! and type of the wrapped obj = {type(self.project._wrapped_object)}")
             self.output.display(self.project)
 
@@ -683,7 +801,7 @@ class ProjectBrowser:
     def data(self):
         if self._data is not None:
             return self._data
-        elif isinstance(self.project, PyironWrapper):
+        elif isinstance(self.project, BaseWrapper):
             return self.project._wrapped_object
         else:
             return None
