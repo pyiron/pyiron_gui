@@ -179,7 +179,6 @@ class AtomsWidget(ObjectWidget):
         self._box.children = tuple([self._header, self._output])
 
     def _init_option_widgets(self):
-        check_box_layout = widgets.Layout(width='auto', margin='0px 0px 0px -50px')
 
         self._option_widgets = {
             'camera': widgets.Dropdown(options=['perspective', 'orthographic'], value=self._options['camera'],
@@ -188,13 +187,13 @@ class AtomsWidget(ObjectWidget):
                                                  min=0.1, max=5.0, step=0.1, readout_format='.1f',
                                                  description="atom size",
                                                  layout=widgets.Layout(width='60%')),
-            'cell': widgets.Checkbox(description='cell', layout=check_box_layout,
+            'cell': widgets.Checkbox(description='cell', indent=False,
                                      value=self._options['cell'],
                                      description_tooltip='Show cell if checked'),
-            'axes': widgets.Checkbox(description='axes', layout=check_box_layout,
+            'axes': widgets.Checkbox(description='axes', indent=False,
                                      value=self._options['axes'],
                                      description_tooltip='Show axes if checked'),
-            'reset_view': widgets.Checkbox(description='reset view', layout=check_box_layout,
+            'reset_view': widgets.Checkbox(description='reset view', indent=False,
                                            value=self._options['reset_view'],
                                            description_tooltip='Reset view if checked')
         }
@@ -281,6 +280,18 @@ class MurnaghanWidget(ObjectWidget):
                                                              "ignored otherwise")
         }
 
+        self._on_change_fit_type({"new": self._options['fit_type']})
+
+        self._option_widgets['fit_type'].observe(self._on_change_fit_type, names="value")
+
+    def _on_change_fit_type(self, change):
+        if change['new'] != "polynomial":
+            self._option_widgets['fit_order'].disabled = True
+            self._option_widgets['fit_order'].layout.display = 'none'
+        else:
+            self._option_widgets['fit_order'].disabled = False
+            self._option_widgets['fit_order'].layout.display = None
+
     @property
     def _option_representation(self):
         """ipywidet to change the options for the self_representation"""
@@ -324,7 +335,6 @@ class MurnaghanWidget(ObjectWidget):
 class NumpyWidget(ObjectWidget):
     def __init__(self, numpy_array):
         super().__init__(numpy_array)
-        self._call_hist = []
         self._fig = None
         self._ax = None
         self._plot_options = None
@@ -350,11 +360,9 @@ class NumpyWidget(ObjectWidget):
         self._plot_array()
         self._show_plot()
         self.refresh()
-        self._call_hist.append("init")
 
     def _click_show_data_button(self, b):
         self._show_data_only()
-        self._call_hist.append("_click_show_data_button")
 
     def _show_data_only(self):
         self._header.children = tuple([self._show_plot_button])
@@ -362,12 +370,10 @@ class NumpyWidget(ObjectWidget):
         with self._output:
             display(self._obj)
         self.refresh()
-        self._call_hist.append("_show_data_only")
 
     def _click_replot_button(self, b):
         self._plot_array()
         self._show_plot()
-        self._call_hist.append("_click_replot_button")
 
     def _show_plot(self):
         if self._obj.ndim >= 3:
@@ -378,11 +384,9 @@ class NumpyWidget(ObjectWidget):
         else:
             self._header.children = tuple([widgets.HBox([self._show_data_button, self._replot_button])])
         self.refresh()
-        self._call_hist.append("_update_header")
 
     def refresh(self):
         self._box.children = tuple([self._header, self._output])
-        self._call_hist.append("refresh")
 
     @property
     def _option_representation(self):
@@ -393,7 +397,6 @@ class NumpyWidget(ObjectWidget):
                 widgets.HBox([self._plot_options['dim']]),
                 widgets.HBox(self._plot_options['idx'])
             ])
-        self._call_hist.append("Used _option_representation")
         return box
 
     def _init_plot_option_widgets(self):
@@ -419,7 +422,6 @@ class NumpyWidget(ObjectWidget):
                                                     f'array is {shape}'
 
         self._plot_options = {'dim': dim_widget, 'idx': fixed_idx_list}
-        self._call_hist.append("_array_plot_widgets")
 
     def _plot_array(self):
         val = self._obj
@@ -461,7 +463,6 @@ class NumpyWidget(ObjectWidget):
         with self._output:
             plt.ioff()
             display(self._ax.figure)
-        self._call_hist.append("_plot_array")
 
 
 class DisplayOutputGUI:
@@ -830,6 +831,7 @@ class ProjectBrowser:
         if isinstance(path, str):
             rel_path = os.path.relpath(path, self.path)
             if rel_path == '.':
+                self.refresh()
                 return
             self._update_project_worker(rel_path)
         else:
