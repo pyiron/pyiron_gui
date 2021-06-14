@@ -400,7 +400,7 @@ class NumpyWidget(ObjectWidget):
         return box
 
     def _init_plot_option_widgets(self):
-        if self._obj.ndim <3:
+        if self._obj.ndim < 3:
             return
         numpy_array = self._obj
         shape = numpy_array.shape
@@ -438,7 +438,7 @@ class NumpyWidget(ObjectWidget):
             else:
                 self._ax.plot(val)
         elif self._plot_options is None:
-            slc = [0 for i in range(val.ndim)]
+            slc = [0 for _ in range(val.ndim)]
             slc[0] = slice(None)
             slc[1] = slice(None)
             self._ax.plot(val[tuple(slc)])
