@@ -103,7 +103,11 @@ class TestAtomsWrapper(TestWithProject):
                       msg='Atoms does not have a project; should return pw._project')
 
     def test_gui(self):
-        self.assertIsInstance(self.pw_atoms.gui, widgets.VBox)
+        # No nglview on github CI, thus:
+        try:
+            self.assertIsInstance(self.pw_atoms.gui, widgets.VBox)
+        except ImportError:
+            pass
 
 
 class TestAtomsWidget(TestWithProject):
@@ -112,10 +116,13 @@ class TestAtomsWidget(TestWithProject):
         self.pw_atoms = AtomsWidget(AtomsWrapper(fe, self.project))
 
     def test_gui(self):
-        # No nglview on github CI, thus:
         self.assertIs(self.pw_atoms._ngl_widget, None)
-        self.pw_atoms.refresh()
+        # No nglview on github CI, thus:
         try:
+            self.pw_atoms.refresh()
+        except ImportError:
+            pass
+        else:
             plot = self.pw_atoms._ngl_widget
             self.assertEqual(type(plot).__name__, 'NGLWidget')
             # Needed to populate the _camera_orientation:
@@ -132,8 +139,6 @@ class TestAtomsWidget(TestWithProject):
             self.pw_atoms._option_widgets['reset_view'].value = True
             self.pw_atoms.refresh()
             self.assertEqual(widget_state_orient_init, self.pw_atoms._ngl_widget.get_state()['_camera_orientation'])
-        except ImportError:
-            pass
 
     def test__parse_option_widgets(self):
         self.assertEqual(1.0, self.pw_atoms._options['particle_size'])
