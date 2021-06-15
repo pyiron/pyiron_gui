@@ -359,7 +359,6 @@ class NumpyWidget(ObjectWidget):
 
         self._plot_array()
         self._show_plot()
-        self.refresh()
 
     def _click_show_data_button(self, b):
         self._show_data_only()
@@ -424,6 +423,7 @@ class NumpyWidget(ObjectWidget):
         self._plot_options = {'dim': dim_widget, 'idx': fixed_idx_list}
 
     def _plot_array(self):
+        plt.ioff()
         val = self._obj
         if self._fig is None:
             self._fig, self._ax = plt.subplots()
@@ -461,7 +461,6 @@ class NumpyWidget(ObjectWidget):
 
         self._output.clear_output()
         with self._output:
-            plt.ioff()
             display(self._ax.figure)
 
 
