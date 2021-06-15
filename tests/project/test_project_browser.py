@@ -225,19 +225,40 @@ class TestMurnaghanWidget(TestWithCleanProject):
         self.assertEqual(3, self.pw_murn._options['fit_order'])
 
     def test_gui(self):
-        self.pw_murn.refresh()
-        self.assertTrue(np.isclose(-90.71969974284912, self.pw_murn._obj.equilibrium_energy))
-        self.assertTrue(np.isclose(448.1341230545222, self.pw_murn._obj.equilibrium_volume))
+        with self.subTest(msg='polynomial with fit_order=3'):
+            self.pw_murn._on_click_apply_button("NoButtonSinceNotNeeded")
+            self.assertAlmostEqual(-90.71969974284912, self.pw_murn._obj.equilibrium_energy)
+            self.assertAlmostEqual(448.1341230545222, self.pw_murn._obj.equilibrium_volume)
 
-        self.pw_murn._option_widgets['fit_order'].value = 2
-        self.pw_murn.refresh()
-        self.assertTrue(np.isclose(-90.76380033222287, self.pw_murn._obj.equilibrium_energy))
-        self.assertTrue(np.isclose(449.1529040727273, self.pw_murn._obj.equilibrium_volume))
+        with self.subTest(msg='polynomial with fit_order=2'):
+            self.pw_murn._option_widgets['fit_order'].value = 2
+            self.pw_murn._on_click_apply_button("NoButtonSinceNotNeeded")
+            self.assertTrue(np.isclose(-90.76380033222287, self.pw_murn._obj.equilibrium_energy))
+            self.assertTrue(np.isclose(449.1529040727273, self.pw_murn._obj.equilibrium_volume))
 
-        self.pw_murn._option_widgets['fit_type'].value = 'birchmurnaghan'
-        self.pw_murn.refresh()
-        self.assertTrue(np.isclose(-90.72005405262217, self.pw_murn._obj.equilibrium_energy))
-        self.assertTrue(np.isclose(448.41909755611437, self.pw_murn._obj.equilibrium_volume))
+        with self.subTest(msg='birchmurnaghan'):
+            self.pw_murn._option_widgets['fit_type'].value = 'birchmurnaghan'
+            self.pw_murn._on_click_apply_button("NoButtonSinceNotNeeded")
+            self.assertTrue(np.isclose(-90.72005405262217, self.pw_murn._obj.equilibrium_energy))
+            self.assertTrue(np.isclose(448.41909755611437, self.pw_murn._obj.equilibrium_volume))
+
+        with self.subTest(msg='murnaghan'):
+            self.pw_murn._option_widgets['fit_type'].value = 'murnaghan'
+            self.pw_murn._on_click_apply_button("NoButtonSinceNotNeeded")
+            self.assertAlmostEqual(-90.72018572197015, self.pw_murn._obj.equilibrium_energy)
+            self.assertAlmostEqual(448.4556825322108, self.pw_murn._obj.equilibrium_volume)
+
+        with self.subTest(msg='vinet'):
+            self.pw_murn._option_widgets['fit_type'].value = 'vinet'
+            self.pw_murn._on_click_apply_button("NoButtonSinceNotNeeded")
+            self.assertAlmostEqual(-90.72000006839492, self.pw_murn._obj.equilibrium_energy)
+            self.assertAlmostEqual(448.40333840970357, self.pw_murn._obj.equilibrium_volume)
+
+        with self.subTest(msg='pouriertarantola'):
+            self.pw_murn._option_widgets['fit_type'].value = 'pouriertarantola'
+            self.pw_murn._on_click_apply_button("NoButtonSinceNotNeeded")
+            self.assertAlmostEqual(-90.71996235760845, self.pw_murn._obj.equilibrium_energy)
+            self.assertAlmostEqual(448.3876577969001, self.pw_murn._obj.equilibrium_volume)
 
 
 class TestNumpyWidget(unittest.TestCase):
@@ -286,6 +307,27 @@ class TestNumpyWidget(unittest.TestCase):
             self.assertEqual(self.np_4d_wid._replot_button.description, 'Apply',
                              msg="With plot options, these can be applied.")
 
+    def test__option_representation(self):
+        with self.subTest(msg='1D'):
+            option_w = self.np_1d_wid._option_representation
+            self.assertEqual(len(option_w.children), 0, msg='No plot options for 1D array')
+
+        with self.subTest(msg='2D'):
+            option_w = self.np_2d_wid._option_representation
+            self.assertEqual(len(option_w.children), 0, msg='No plot options for 2D array')
+
+        with self.subTest(msg='3D'):
+            option_w = self.np_3d_wid._option_representation
+            self.assertEqual(len(option_w.children), 2, msg='Dim and index plot options for 3D array')
+            index_hbox = option_w.children[1]
+            self.assertEqual(len(index_hbox.children), 1, msg='One index to choose for a 3D array')
+
+        with self.subTest(msg='4D'):
+            option_w = self.np_4d_wid._option_representation
+            self.assertEqual(len(option_w.children), 2, msg='Dim and index plot options for 4D array')
+            index_hbox = option_w.children[1]
+            self.assertEqual(len(index_hbox.children), 2, msg='Two index to choose for a 4D array')
+
     def test__click_show_data_button(self):
         # use a fake_out since everything directed to the widgets.Output() is redirected to sys.stdout in the tests
         with unittest.mock.patch('sys.stdout', new=io.StringIO()) as fake_out:
@@ -305,6 +347,65 @@ class TestNumpyWidget(unittest.TestCase):
             self.np_4d_wid._click_show_data_button('NoButtonSinceNotUsed')
             self.assertEqual(self.np_4d_wid._header.children, tuple([self.np_4d_wid._show_plot_button]))
 
+    def test__click_replot_button(self):
+        with self.subTest('1D'):
+            self.np_1d_wid._click_show_data_button('NoButtonSinceNotUsed')
+            self.np_1d_wid._click_replot_button('NoButtonSinceNotUsed')
+            header = self.np_1d_wid._header
+            hbox_children = header.children[0].children
+            self.assertIs(hbox_children[0], self.np_1d_wid._show_data_button)
+            self.assertIs(hbox_children[1], self.np_1d_wid._replot_button)
+
+        with self.subTest('2D'):
+            self.np_2d_wid._click_show_data_button('NoButtonSinceNotUsed')
+            self.np_2d_wid._click_replot_button('NoButtonSinceNotUsed')
+            header = self.np_2d_wid._header
+            hbox_children = header.children[0].children
+            self.assertIs(hbox_children[0], self.np_2d_wid._show_data_button)
+            self.assertIs(hbox_children[1], self.np_2d_wid._replot_button)
+
+        with self.subTest('3D'):
+            self.np_3d_wid._click_show_data_button('NoButtonSinceNotUsed')
+            self.np_3d_wid._click_replot_button('NoButtonSinceNotUsed')
+            header_children = self.np_3d_wid._header.children
+            self.assertIsInstance(header_children[0], widgets.VBox)
+            self.assertIsInstance(header_children[1], widgets.VBox)
+            buttons = header_children[1].children
+            self.assertIs(buttons[0], self.np_3d_wid._show_data_button)
+            self.assertIs(buttons[1], self.np_3d_wid._replot_button)
+
+        with self.subTest('4D'):
+            self.np_4d_wid._click_show_data_button('NoButtonSinceNotUsed')
+            self.np_4d_wid._click_replot_button('NoButtonSinceNotUsed')
+            header_children = self.np_4d_wid._header.children
+            self.assertIsInstance(header_children[0], widgets.VBox)
+            self.assertIsInstance(header_children[1], widgets.VBox)
+            buttons = header_children[1].children
+            self.assertIs(buttons[0], self.np_4d_wid._show_data_button)
+            self.assertIs(buttons[1], self.np_4d_wid._replot_button)
+
+    def test__plot_array(self):
+        """Only testing additional/special cases here"""
+        with self.subTest("2D with len=1"):
+            self.np_1d_wid._plot_array()
+            plotted_array_1d = self.np_1d_wid._ax.lines[0].get_xydata()
+
+            np_2d_wid_len_1 = NumpyWidget(np.reshape(np.arange(10), (1, 10)))
+            plotted_array_2d = np_2d_wid_len_1._ax.lines[0].get_xydata()
+            self.assertTrue(np.allclose(plotted_array_1d, plotted_array_2d),
+                            msg="2D arrays with len=1 should behave as a 1D array")
+
+        with self.subTest("3D without _plot_options"):
+            plotted_array_init = self.np_3d_wid._ax.lines[0].get_xydata()
+            self.np_3d_wid._plot_options = None
+            self.np_3d_wid._plot_array()
+            self.assertTrue(np.allclose(self.np_3d_wid._ax.lines[0].get_xydata(), plotted_array_init))
+
+        with self.subTest(msg="Trigger 'Error'"):
+            with unittest.mock.patch('sys.stdout', new=io.StringIO()) as fake_out:
+                self.np_4d_wid._plot_options['dim'].value = [0]
+                self.np_4d_wid._plot_array()
+                self.assertTrue('Error: You need to select exactly two dimensions.' in fake_out.getvalue())
 
 
 class TestDisplayOutputGUI(TestWithProject):
