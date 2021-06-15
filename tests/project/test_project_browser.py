@@ -194,6 +194,9 @@ class TestMurnaghanWrapper(TestWithProject):
         self.assertFalse(self.pw_murn.project is self.project, msg="murn.project should be a copy of the project")
         self.assertEqual(self.pw_murn.project.path, self.project.path)
 
+    def test_gui(self):
+        self.assertIsInstance(self.pw_murn.gui, widgets.VBox)
+
 
 class TestMurnaghanWidget(TestWithCleanProject):
 

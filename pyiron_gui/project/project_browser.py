@@ -766,13 +766,13 @@ class ProjectBrowser:
         set_path_button.on_click(click_option_button)
         if self.fix_path:
             set_path_button.disabled = True
-        childs = [set_path_button, self.path_string_box]
+        children = [set_path_button, self.path_string_box]
 
         button = widgets.Button(description="Reset selection", layout=widgets.Layout(width='min-content'))
         button.on_click(click_option_button)
-        childs.append(button)
+        children.append(button)
 
-        optionbox.children = tuple(childs)
+        optionbox.children = tuple(children)
 
     def _click_option_button(self, b):
         self.output.clear_output(True)
