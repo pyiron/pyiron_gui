@@ -1,0 +1,17 @@
+channels:
+- conda-forge
+dependencies:
+- python
+- pyiron_gui >= 0.0.4
+- lammps
+- iprpy-data
+- gpaw
+- sphinxdft >=2.7.0
+- sphinxdft-data
+- nglview
+- seaborn
+- pyscal
+- jupyterlab
+- pyiron-data >=0.0.5
+- sqsgenerator
+- pymatgen
