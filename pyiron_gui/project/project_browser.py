@@ -470,18 +470,16 @@ class DisplayOutputGUI:
     The behavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display."""
     def __init__(self, *args, **kwargs):
         self.box = widgets.VBox(*args, **kwargs)
-        self.header = widgets.HBox()
         self.output = widgets.Output(layout=widgets.Layout(width='100%'))
         self._display_obj = None
         self._debug = False
         self.refresh()
 
     def refresh(self):
-        self.box.children = (self.header, self.output)
+        self.box.children = [self.output]
 
     def __enter__(self):
         """Use context manager on the widgets.Output widget"""
-        self.header = widgets.HBox()
         return self.output.__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -493,9 +491,6 @@ class DisplayOutputGUI:
         return self.output.__getattribute__(item)
 
     def clear_output(self, *args, **kwargs):
-        clear_button = kwargs.pop('clear_button', False)
-        if clear_button:
-            self.header = widgets.HBox()
         self.output.clear_output(*args, **kwargs)
         self.refresh()
 
@@ -835,7 +830,7 @@ class ProjectBrowser:
             self._update_project_worker(rel_path)
         else:
             self._project = path
-        self.output.clear_output(True, clear_button=True)
+        self.output.clear_output(True)
         self.refresh()
 
     def _gen_pathbox_path_list(self):
