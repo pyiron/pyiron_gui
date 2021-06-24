@@ -20,5 +20,5 @@ Getting started:
 Test pyiron with mybinder:
 
 .. image:: https://mybinder.org/badge_logo.svg
-     :target: https://mybinder.org/v2/gh/pyiron/pyiron_gui/binder
+     :target: https://mybinder.org/v2/gh/pyiron/pyiron_gui/master
      :alt: mybinder
