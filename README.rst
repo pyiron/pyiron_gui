@@ -15,3 +15,10 @@ pyiron_gui
     
 This repository is for GUI extensions to the overall pyiron framework.
 
+Getting started:
+----------------
+Test pyiron with mybinder:
+
+.. image:: https://mybinder.org/badge_logo.svg
+     :target: https://mybinder.org/v2/gh/pyiron/pyiron_gui/master
+     :alt: mybinder
