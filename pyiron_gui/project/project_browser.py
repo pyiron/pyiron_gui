@@ -18,6 +18,7 @@ from pyiron_atomistics import Atoms
 from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
 from pyiron_base import Project as BaseProject
 from pyiron_base.generic.filedata import FileData
+from pyiron_base.interfaces.has_groups import HasGroups
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
@@ -46,7 +47,7 @@ def _(py_obj: Murnaghan, project, rel_path=""):
     return MurnaghanWrapper(py_obj, project, rel_path=rel_path)
 
 
-class BaseWrapper:
+class BaseWrapper(HasGroups):
 
     """Simple wrapper for pyiron objects which extends for basic pyiron functionality (list_nodes ...)"""
 
@@ -55,10 +56,6 @@ class BaseWrapper:
         self._project = project
         self._rel_path = rel_path
         self._name = None
-
-    @staticmethod
-    def _empty_list():
-        return []
 
     @property
     def name(self):
@@ -94,6 +91,18 @@ class BaseWrapper:
             except AttributeError:
                 return self._empty_list
         return getattr(self._wrapped_object, item)
+
+    def _list_groups(self):
+        if hasattr(self._wrapped_object, "list_groups"):
+            return self._wrapped_object.list_groups()
+        else:
+            return []
+
+    def _list_nodes(self):
+        if hasattr(self._wrapped_object, "list_nodes"):
+            return self._wrapped_object.list_nodes()
+        else:
+            return []
 
     def __repr__(self):
         return repr(self._wrapped_object)
@@ -241,6 +250,7 @@ class AtomsWidget(ObjectWidget):
             opacity=1.0
         )
         if not self._options['reset_view'] and len(orient) == 16:
+            # len(orient)=16 if set; c.f. pyiron_atomistics.atomistics.structure._visualize._get_flattened_orientation
             self._ngl_widget.control.orient(orient)
 
 
