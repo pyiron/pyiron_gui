@@ -13,7 +13,7 @@ import numpy as np
 from pyiron_base._tests import TestWithProject
 from pyiron_base.project.generic import Project
 from pyiron_gui import activate_gui
-from pyiron_gui.project.project_browser import ProjectBrowser
+from pyiron_gui.project.project_browser import ProjectBrowser, PyironWrapper
 from tests.toy_job_run import ToyJob
 
 
@@ -134,6 +134,27 @@ class TestProjectBrowser(TestWithProject):
         self.assertEqual(browser.data.data, ["some text"])
         browser._on_click_file('text.txt')
         self.assertTrue(browser.data is None)
+
+    def test_data(self):
+        browser = self.browser.copy()
+        browser._data = "some text"
+        self.assertEqual(browser.data, "some text")
+        browser._data = None
+        self.assertTrue(browser.data is None)
+        str_obj = "Some string"
+        browser._project = PyironWrapper(str_obj, project=self.project)
+        self.assertIs(browser.data, str_obj)
+
+    def test_gen_pathbox_path_list(self):
+        class DummyProj:
+            def __init__(self, path):
+                self.path = path
+
+        self.browser._project = DummyProj('/some/path')
+        self.assertEqual(['/', '/some', '/some/path'], self.browser._gen_pathbox_path_list())
+
+        self.browser._project = DummyProj('/some/path/')
+        self.assertEqual(['/', '/some', '/some/path'], self.browser._gen_pathbox_path_list())
 
     def test__update_project(self):
         browser = self.browser.copy()
