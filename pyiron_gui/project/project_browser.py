@@ -242,10 +242,13 @@ class ProjectBrowser:
     @property
     def _project_root_path(self):
         try:
-            root_path = self.project.root_path
+            return self.project.root_path
         except AttributeError:
-            root_path = self.project.project.root_path
-        return root_path
+            pass
+        try:
+            return self.project.project.root_path
+        except AttributeError:
+            return None
 
     def _busy_check(self, busy=True):
         """Function to disable widget interaction while another update is ongoing."""
