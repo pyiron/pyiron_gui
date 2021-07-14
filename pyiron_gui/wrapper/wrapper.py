@@ -4,7 +4,6 @@ from functools import singledispatch
 
 from pyiron_atomistics import Atoms
 from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
-from pyiron_base import DataContainer
 from pyiron_base.interfaces.has_groups import HasGroups
 from pyiron_gui.wrapper.widgets import ObjectWidget, AtomsWidget, MurnaghanWidget
 
@@ -12,11 +11,6 @@ from pyiron_gui.wrapper.widgets import ObjectWidget, AtomsWidget, MurnaghanWidge
 @singledispatch
 def PyironWrapper(py_obj, project, rel_path=""):
     return BaseWrapper(py_obj, project, rel_path=rel_path)
-
-
-@PyironWrapper.register
-def _(py_obj: DataContainer, project, rel_path=""):
-    return DataContainerWrapper(py_obj, project, rel_path=rel_path)
 
 
 @PyironWrapper.register
@@ -92,7 +86,6 @@ class BaseWrapper(HasGroups):
     @property
     def gui(self):
         return ObjectWidget(self).gui
-
 
 
 class AtomsWrapper(BaseWrapper):
