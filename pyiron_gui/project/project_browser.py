@@ -560,6 +560,7 @@ class DisplayOutputGUI:
             try:
                 data_cp = obj.copy()
                 data_cp.thumbnail((800, 800))
+                data_cp = data_cp.convert('RGB')
             except:
                 data_cp = obj
             return data_cp
