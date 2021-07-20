@@ -13,7 +13,8 @@ import numpy as np
 from pyiron_base._tests import TestWithProject
 from pyiron_base.project.generic import Project
 from pyiron_gui import activate_gui
-from pyiron_gui.project.project_browser import ProjectBrowser, PyironWrapper
+from pyiron_gui.project.project_browser import ProjectBrowser
+from pyiron_gui.wrapper.wrapper import PyironWrapper
 from tests.toy_job_run import ToyJob
 
 
