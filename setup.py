@@ -39,6 +39,6 @@ setup(
         'matplotlib==3.4.2',
         'mendeleev==0.7.0',
         'numpy==1.21.1',
-        'pandas==1.3.0',
+        'pandas==1.3.1',
     ]
 )
