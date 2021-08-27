@@ -13,6 +13,7 @@ import pandas
 from IPython.core.display import display, HTML
 
 from pyiron_base import Project as BaseProject
+from pyiron_base.interfaces.has_groups import HasGroups
 from pyiron_base.generic.filedata import FileData
 from pyiron_gui.wrapper.widgets import ObjectWidget, NumpyWidget
 from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper
@@ -121,6 +122,169 @@ class DisplayOutputGUI:
             return data_cp
         else:
             return obj
+
+
+class HasGroupsBrowser:
+    def __init__(self, project, box=None):
+        if box is None or box == 'VBox':
+            self.box = widgets.VBox()
+        elif box == 'HBox':
+            self.box = widgets.HBox()
+        else:
+            self.box = box
+
+        if not isinstance(project, HasGroups):
+            raise ValueError()
+        self.project = project
+        self._history = [project]
+        self._history_idx = 0
+        self._busy = False
+        self._clicked_nodes = []
+
+        self._item_layout = widgets.Layout(width='min-content',
+                                           height='30px',
+                                           min_height='24px',
+                                           display='flex',
+                                           align_items="center",
+                                           justify_content='flex-start')
+
+        self._color = {
+            "control": "#FF0000",
+            "group": '#9999FF',
+            'path': '#DDDDAA',
+            'file_chosen': '#FFBBBB',
+            'file': '#DDDDDD',
+        }
+
+        self._update_groups_and_nodes()
+
+    @property
+    def color(self):
+        return self._color
+
+    def _busy_check(self, busy=True):
+        """Function to disable widget interaction while another update is ongoing."""
+        if self._busy and busy:
+            return True
+        else:
+            self._busy = busy
+
+    def _go_back(self, _=None):
+        self._history_idx -= 1
+        self.project = self._history[self._history_idx]
+        self._update_groups_and_nodes()
+
+    def _go_forward(self, _=None):
+        self._history_idx += 1
+        self.project = self._history[self._history_idx]
+        self._update_groups_and_nodes()
+
+    def _gen_control_buttons(self):
+        back_button = widgets.Button(description="",
+                                     icon="arrow-left",
+                                     layout=self._item_layout)
+        back_button.style.button_color = self.color["control"]
+        back_button.on_click(self._go_back)
+        if self._history_idx == 0:
+            back_button.disabled = True
+
+        forward_button = widgets.Button(description='',
+                                        icon="arrow-right",
+                                        layout=self._item_layout)
+        forward_button.style.button_color = self.color["control"]
+        forward_button.on_click(self._go_forward)
+        if self._history_idx == len(self._history) - 1:
+            forward_button.disabled = True
+        return [back_button, forward_button]
+
+    def _update_groups_and_nodes(self):
+        node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
+        self.nodes = self.project.list_nodes()
+        self.nodes = [node for node in self.nodes if node not in node_filter]
+        self.dirs = self.project.list_groups()
+        self.refresh()
+
+    def _update_project(self, group_name):
+        self._history_idx += 1
+        self._history = self._history[:self._history_idx]
+        self.project = self.project[group_name]
+        self._history.append(self.project)
+        self._update_groups_and_nodes()
+
+    def _on_click_group(self, b):
+        if self._busy_check():
+            return
+        self._update_project(b.description)
+        self._busy_check(False)
+
+    def _gen_group_buttons(self, groups=None):
+        if groups is None:
+            groups = self.dirs
+        button_list = []
+        for group in groups:
+            button = widgets.Button(description=str(group),
+                                    icon="folder",
+                                    layout=self._item_layout)
+            button.style.button_color = self.color["group"]
+            button.on_click(self._on_click_group)
+            button_list.append(button)
+        return button_list
+
+    def _on_click_node(self, b):
+        if self._busy_check():
+            return
+        self._select_node(b.description)
+        self._update_filebox()
+        self._busy_check(False)
+
+    def _select_node(self, node):
+        if node in self._clicked_nodes:
+            self._clicked_nodes.remove(node)
+        else:
+            self._clicked_nodes = [node]
+
+    def _gen_node_buttons(self, nodes=None):
+        if nodes is None:
+            nodes = self.nodes
+        node_list = []
+        for node in nodes:
+            button = widgets.Button(description=str(node),
+                                    icon="file-o",
+                                    layout=self._item_layout)
+            if node in self._clicked_nodes:
+                button.style.button_color = self.color["file_chosen"]
+            else:
+                button.style.button_color = self.color["file"]
+            button.on_click(self._on_click_node)
+            node_list.append(button)
+        return node_list
+
+    @staticmethod
+    def _wrap_HBox(children):
+        box = widgets.Box(children)
+        box.layout.display = 'flex'
+        box.layout.align_items = 'stretch'
+        box.layout.flex_flow = 'row wrap'
+        return box
+
+    def _update_filebox(self, filebox=None):
+        if filebox is None:
+            filebox = self.box
+        filebox.children = tuple([self._wrap_HBox(self._gen_control_buttons()),
+                                 self._wrap_HBox(self._gen_group_buttons()),
+                                 self._wrap_HBox(self._gen_node_buttons())])
+
+    def refresh(self):
+        self._update_filebox()
+
+    def gui(self):
+        """Return the VBox containing the browser."""
+        self.refresh()
+        return self.box
+
+    def _ipython_display_(self):
+        """Function used by Ipython to display the object."""
+        display(self.gui())
 
 
 class ProjectBrowser:
