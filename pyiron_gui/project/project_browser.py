@@ -134,11 +134,18 @@ class HasGroupsBrowser:
             self.box = box
 
         if not isinstance(project, HasGroups):
-            raise ValueError()
-        self.project = project
+            raise TypeError()
+        self._project = project
         self._history = [project]
         self._history_idx = 0
+        self._files = None
+        self._nodes = None
+        self._groups = None
+        self._file_ext_filter = ['.h5', '.db']
+        self._node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
         self._busy = False
+        self._show_all = False
+        self._show_files = True
         self._clicked_nodes = []
 
         self._item_layout = widgets.Layout(width='min-content',
@@ -159,6 +166,44 @@ class HasGroupsBrowser:
         self._update_groups_and_nodes()
 
     @property
+    def groups(self):
+        return self._groups
+
+    @property
+    def nodes(self):
+        if self._show_all:
+            return self._nodes
+        else:
+            return [node for node in self._nodes if node not in self._node_filter]
+
+    @property
+    def files(self):
+        if self._show_all:
+            return self._files
+        elif self._node_as_group and self._show_files:
+            return [file for file in self._files if not file.endswith(tuple(self._file_ext_filter))]
+        else:
+            return []
+
+    @property
+    def project(self):
+        return self._project
+
+    @project.setter
+    def project(self, new_project):
+        if not isinstance(new_project, HasGroups):
+            raise TypeError
+        self._project = new_project
+        self._history_idx += 1
+        self._history = self._history[:self._history_idx]
+        self._history.append(self.project)
+        self._update_groups_and_nodes()
+
+    @property
+    def _node_as_group(self):
+        return isinstance(self.project, BaseProject)
+
+    @property
     def color(self):
         return self._color
 
@@ -171,12 +216,12 @@ class HasGroupsBrowser:
 
     def _go_back(self, _=None):
         self._history_idx -= 1
-        self.project = self._history[self._history_idx]
+        self._project = self._history[self._history_idx]
         self._update_groups_and_nodes()
 
     def _go_forward(self, _=None):
         self._history_idx += 1
-        self.project = self._history[self._history_idx]
+        self._project = self._history[self._history_idx]
         self._update_groups_and_nodes()
 
     def _gen_control_buttons(self):
@@ -198,18 +243,16 @@ class HasGroupsBrowser:
         return [back_button, forward_button]
 
     def _update_groups_and_nodes(self):
-        node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
-        self.nodes = self.project.list_nodes()
-        self.nodes = [node for node in self.nodes if node not in node_filter]
-        self.dirs = self.project.list_groups()
+        self._nodes = self.project.list_nodes()
+        self._groups = self.project.list_groups()
+        if hasattr(self.project, 'list_files'):
+            self._files = self.project.list_files()
+        else:
+            self._files = []
         self.refresh()
 
     def _update_project(self, group_name):
-        self._history_idx += 1
-        self._history = self._history[:self._history_idx]
         self.project = self.project[group_name]
-        self._history.append(self.project)
-        self._update_groups_and_nodes()
 
     def _on_click_group(self, b):
         if self._busy_check():
@@ -219,7 +262,7 @@ class HasGroupsBrowser:
 
     def _gen_group_buttons(self, groups=None):
         if groups is None:
-            groups = self.dirs
+            groups = self.groups + self.nodes if self._node_as_group else self.groups
         button_list = []
         for group in groups:
             button = widgets.Button(description=str(group),
@@ -245,7 +288,7 @@ class HasGroupsBrowser:
 
     def _gen_node_buttons(self, nodes=None):
         if nodes is None:
-            nodes = self.nodes
+            nodes = self.files if self._node_as_group else self.files + self.nodes
         node_list = []
         for node in nodes:
             button = widgets.Button(description=str(node),
@@ -260,7 +303,8 @@ class HasGroupsBrowser:
         return node_list
 
     @staticmethod
-    def _wrap_HBox(children):
+    def _wraping_HBox(children):
+        """Construct a Box widget with similar properties as the normal HBox but with wrapping behavior."""
         box = widgets.Box(children)
         box.layout.display = 'flex'
         box.layout.align_items = 'stretch'
@@ -270,9 +314,9 @@ class HasGroupsBrowser:
     def _update_filebox(self, filebox=None):
         if filebox is None:
             filebox = self.box
-        filebox.children = tuple([self._wrap_HBox(self._gen_control_buttons()),
-                                 self._wrap_HBox(self._gen_group_buttons()),
-                                 self._wrap_HBox(self._gen_node_buttons())])
+        filebox.children = tuple([self._wraping_HBox(self._gen_control_buttons()),
+                                  self._wraping_HBox(self._gen_group_buttons()),
+                                  self._wraping_HBox(self._gen_node_buttons())])
 
     def refresh(self):
         self._update_filebox()
