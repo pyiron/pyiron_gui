@@ -1,7 +1,7 @@
 # coding: utf-8
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
-
+import functools
 import os
 
 import ipywidgets as widgets
@@ -28,6 +28,55 @@ __maintainer__ = "Niklas Siemer"
 __email__ = "siemer@mpie.de"
 __status__ = "development"
 __date__ = "Feb 02, 2021"
+
+
+class _BusyCheck:
+    def __init__(self):
+        self._busy = False
+        self._widget_state = {}
+
+    @property
+    def busy(self):
+        return self._busy
+
+    @busy.setter
+    def busy(self, value):
+        if value:
+            for key, val in self._widgets.items():
+                if hasattr(val, 'disabled'):
+                    self._widget_state[key] = val.disabled
+                    val.disabled = True
+        else:
+            wid = self._widgets
+            for key, val in self._widget_state.items():
+                wid[key].disabled = val
+        self._busy = value
+
+    @property
+    def _widgets(self):
+        return widgets.Widget.widgets
+
+    def _busy_check(self, busy=True):
+        """Function to disable widget interaction while another update is ongoing."""
+        if self.busy and busy:
+            return True
+        else:
+            self.busy = busy
+
+    def _decorator_function(self, function):
+        @functools.wraps(function)
+        def decorated(*args, **kwargs):
+            if self._busy_check():
+                return
+            function(*args, **kwargs)
+            self._busy_check(False)
+        return decorated
+
+    def __call__(self):
+        return self._decorator_function
+
+
+busy_check = _BusyCheck()
 
 
 class DisplayOutputGUI:
@@ -132,6 +181,7 @@ class HasGroupsBrowser:
             self.box = widgets.HBox()
         else:
             self.box = box
+        self._body_box = widgets.VBox()
 
         if not isinstance(project, HasGroups):
             raise TypeError()
@@ -141,13 +191,13 @@ class HasGroupsBrowser:
         self._files = None
         self._nodes = None
         self._groups = None
-        self._busy = False
         self._clicked_nodes = []
 
         self._file_ext_filter = ['.h5', '.db']
         self._node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
         self._show_all = False
         self._show_files = True
+        self._fix_position = False
         self._item_layout = widgets.Layout(width='min-content',
                                            height='30px',
                                            min_height='24px',
@@ -162,6 +212,7 @@ class HasGroupsBrowser:
         }
 
         self._update_groups_and_nodes()
+        self.refresh()
 
     def __copy__(self):
         new = self.__class__(project=self.project)
@@ -169,6 +220,7 @@ class HasGroupsBrowser:
         new._node_filter = self._node_filter
         new._show_all = self._show_all
         new._show_files = self._show_files
+        new._fix_position = self._fix_position
         return new
 
     def copy(self):
@@ -201,6 +253,8 @@ class HasGroupsBrowser:
 
     @project.setter
     def project(self, new_project):
+        if self._fix_position:
+            raise RuntimeError('Not allowed to change the current group.')
         if not isinstance(new_project, HasGroups):
             raise TypeError
         self._project = new_project
@@ -208,6 +262,7 @@ class HasGroupsBrowser:
         self._history = self._history[:self._history_idx]
         self._history.append(self.project)
         self._update_groups_and_nodes()
+        self.refresh()
 
     @property
     def _node_as_group(self):
@@ -217,22 +272,17 @@ class HasGroupsBrowser:
     def color(self):
         return self._color
 
-    def _busy_check(self, busy=True):
-        """Function to disable widget interaction while another update is ongoing."""
-        if self._busy and busy:
-            return True
-        else:
-            self._busy = busy
-
     def _go_back(self, _=None):
         self._history_idx -= 1
         self._project = self._history[self._history_idx]
         self._update_groups_and_nodes()
+        self.refresh()
 
     def _go_forward(self, _=None):
         self._history_idx += 1
         self._project = self._history[self._history_idx]
         self._update_groups_and_nodes()
+        self.refresh()
 
     def _gen_control_buttons(self):
         back_button = widgets.Button(description="",
@@ -259,16 +309,13 @@ class HasGroupsBrowser:
             self._files = self.project.list_files()
         else:
             self._files = []
-        self.refresh()
 
     def _update_project(self, group_name):
         self.project = self.project[group_name]
 
+    @busy_check()
     def _on_click_group(self, b):
-        if self._busy_check():
-            return
         self._update_project(b.description)
-        self._busy_check(False)
 
     def _gen_group_buttons(self, groups=None):
         if groups is None:
@@ -280,15 +327,15 @@ class HasGroupsBrowser:
                                     layout=self._item_layout)
             button.style.button_color = self.color["group"]
             button.on_click(self._on_click_group)
+            if self._fix_position:
+                button.disabled = True
             button_list.append(button)
         return button_list
 
+    @busy_check()
     def _on_click_node(self, b):
-        if self._busy_check():
-            return
         self._select_node(b.description)
-        self._update_filebox()
-        self._busy_check(False)
+        self._update_body_box()
 
     def _select_node(self, node):
         if node in self._clicked_nodes:
@@ -321,15 +368,20 @@ class HasGroupsBrowser:
         box.layout.flex_flow = 'row wrap'
         return box
 
-    def _update_filebox(self, filebox=None):
-        if filebox is None:
-            filebox = self.box
-        filebox.children = tuple([self._wraping_HBox(self._gen_control_buttons()),
-                                  self._wraping_HBox(self._gen_group_buttons()),
-                                  self._wraping_HBox(self._gen_node_buttons())])
+    def _update_body_box(self, body_box=None):
+        if body_box is None:
+            body_box = self._body_box
+        if self._fix_position:
+            body_box.children = tuple([self._wraping_HBox(self._gen_group_buttons()),
+                                       self._wraping_HBox(self._gen_node_buttons())])
+        else:
+            body_box.children = tuple([self._wraping_HBox(self._gen_control_buttons()),
+                                       self._wraping_HBox(self._gen_group_buttons()),
+                                       self._wraping_HBox(self._gen_node_buttons())])
 
     def refresh(self):
-        self._update_filebox()
+        self._update_body_box()
+        self.box.children = tuple([self._body_box])
 
     def gui(self):
         """Return the VBox containing the browser."""
@@ -341,7 +393,69 @@ class HasGroupsBrowser:
         display(self.gui())
 
 
-class ProjectBrowser:
+class HasGroupBrowserWithOutput(HasGroupsBrowser):
+    def __init__(self, project, box=None):
+        self._output = DisplayOutputGUI(layout=widgets.Layout(width='45%', height='100%'))
+        self._body_box = widgets.VBox(layout=widgets.Layout(width='50%', height='100%', justify_content='flex-start'))
+        self._data = None
+        super().__init__(project=project, box=box)
+        self.refresh()
+
+    @property
+    def data(self):
+        return self._data
+
+    def _clear_output(self):
+        self._output.clear_output(True)
+        with self._output:
+            print('')
+
+    def refresh(self):
+        """Refresh the project browser."""
+        self._clear_output()
+        if isinstance(self.project, BaseWrapper):
+            self._output.display(self.project)
+
+        self._update_groups_and_nodes()
+        body = widgets.HBox([self._body_box, self._output.box],
+                            layout=widgets.Layout(
+                                min_height='100px',
+                                max_height='800px'
+                            ))
+        self._update_body_box(self._body_box)
+        self.box.children = tuple([body])
+
+    def _update_project_worker(self, rel_path):
+        new_project = self.project[rel_path]
+        if 'TYPE' in new_project.list_nodes():
+            try:
+                new_project2 = PyironWrapper(new_project.to_object(), self.project, rel_path)
+            except ValueError:  # to_object() (may?) fail with an ValueError for GenericParameters
+                pass
+            else:
+                new_project = new_project2
+        self.project = new_project
+
+    def _update_project(self, group_name):
+        self._update_project_worker(group_name)
+        self._clear_output()
+        self.refresh()
+
+    def _select_node(self, node):
+        self._clear_output()
+        try:
+            data = self.project[node]
+        except(KeyError, IOError):
+            data = None
+        self._output.display(data, default_output=[node])
+        super()._select_node(node)
+        if node in self._clicked_nodes:
+            self._data = data
+        else:
+            self._data = None
+
+
+class ProjectBrowser(HasGroupBrowserWithOutput):
 
     """
         Project Browser Widget
@@ -364,39 +478,31 @@ class ProjectBrowser:
             fix_path (bool): If True the path in the file system cannot be changed.
             show_files(bool): If True files (from project.list_files()) are displayed.
         """
-        self._project = project
-        self._project_to_obj = None
-        self._node_as_dirs = isinstance(self.project, BaseProject)
-        self._is_pyiron_obj = 'pyiron' in str(type(self.project))  # ToDo: isinstace(obj, PyironObject)
-        self._initial_project = self._project
-        self._initial_project_path = self.path
-        self._color = {
-            "dir": '#9999FF',
-            'path': '#DDDDAA',
-            'home': '#999999',
-            'file_chosen': '#FFBBBB',
-            'file': '#DDDDDD',
-        }
-
-        if Vbox is None:
-            self._box = widgets.VBox()
-        else:
-            self._box = Vbox
-        self._fix_path = fix_path
-        self._busy = False
+        super().__init__(project=project, box=Vbox)
         self._show_files = show_files
-        self._file_ext_filter = ['.h5', '.db']
+        self._initial_project_path = self.path
+        self._color['path'] = '#DDDDAA'
+        self._color['home'] = '#999999'
+
+        self._fix_position = fix_path
         self._hide_path = True
-        self.output = DisplayOutputGUI(layout=widgets.Layout(width='50%', height='100%'))
-        self._clickedFiles = []
-        self._data = None
         self.pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
         self.optionbox = widgets.HBox()
-        self.filebox = widgets.VBox(layout=widgets.Layout(width='50%', height='100%', justify_content='flex-start'))
         self.path_string_box = widgets.Text(description="(rel) Path",
                                             layout=widgets.Layout(width='min-content')
                                             )
         self.refresh()
+
+    @property
+    def _initial_project(self):
+        return self._history[0]
+
+    @_initial_project.setter
+    def _initial_project(self, project):
+        if not isinstance(project, HasGroups):
+            raise TypeError
+        self._history.insert(0, project)
+        self._history_idx += 1
 
     @property
     def color(self):
@@ -413,11 +519,11 @@ class ProjectBrowser:
 
     @property
     def fix_path(self):
-        return self._fix_path
+        return self._fix_position
 
     @fix_path.setter
     def fix_path(self, fix_path):
-        self._fix_path = fix_path
+        self._fix_position = fix_path
         self.refresh()
 
     @property
@@ -469,50 +575,17 @@ class ProjectBrowser:
         except AttributeError:
             return None
 
-    def _busy_check(self, busy=True):
-        """Function to disable widget interaction while another update is ongoing."""
-        if self._busy and busy:
-            return True
-        else:
-            self._busy = busy
-
-    def _update_files(self):
-        # HDF and S3 project do not have list_files
-        node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
-        self.nodes = self.project.list_nodes()
-        if self._is_pyiron_obj:
-            self.nodes = [node for node in self.nodes if node not in node_filter]
-        self.dirs = self.project.list_groups()
-        self.files = list()
-        if self._show_files:
-            try:
-                self.files = self.project.list_files()
-            except AttributeError:
-                pass
-        self.files = [file for file in self.files if not file.endswith(tuple(self._file_ext_filter))]
-
-    def gui(self):
-        """Return the VBox containing the browser."""
-        self.refresh()
-        return self.box
-
     def refresh(self):
         """Refresh the project browser."""
-        self.output.clear_output(True)
-        if isinstance(self.project, BaseWrapper):
-            # print(f"has self_repr! and type of the wrapped obj = {type(self.project._wrapped_object)}")
-            self.output.display(self.project)
+        super().refresh()
 
-        self._node_as_dirs = isinstance(self.project, BaseProject)
-        self._update_files()
-        body = widgets.HBox([self.filebox, self.output.box],
+        body = widgets.HBox([self._body_box, self._output.box],
                             layout=widgets.Layout(
                                 min_height='100px',
                                 max_height='800px'
                             ))
         self.path_string_box = self.path_string_box.__class__(description="(rel) Path", value='')
         self._update_optionbox(self.optionbox)
-        self._update_filebox(self.filebox)
         self._update_pathbox(self.pathbox)
         self.box.children = tuple([self.optionbox, self.pathbox, body])
 
@@ -529,7 +602,7 @@ class ProjectBrowser:
         if Vbox is not None:
             self._box = Vbox
         if fix_path is not None:
-            self._fix_path = fix_path
+            self._fix_position = fix_path
         if show_files is not None:
             self._show_files = show_files
         if hide_path is not None:
@@ -537,47 +610,43 @@ class ProjectBrowser:
         self.refresh()
 
     def _update_optionbox(self, optionbox):
-
-        def click_option_button(b):
-            if self._busy_check():
-                return
-            self._click_option_button(b)
-            self._busy_check(False)
-
         set_path_button = widgets.Button(description='Set Path', tooltip="Sets current path to provided string.")
-        set_path_button.on_click(click_option_button)
+        set_path_button.on_click(self._set_pathbox_path)
         if self.fix_path:
             set_path_button.disabled = True
-        children = [set_path_button, self.path_string_box]
+            children = [set_path_button, self.path_string_box]
+        else:
+            children = self._gen_control_buttons() + [set_path_button, self.path_string_box]
 
         button = widgets.Button(description="Reset selection", layout=widgets.Layout(width='min-content'))
-        button.on_click(click_option_button)
+        button.on_click(self._reset_data)
         children.append(button)
 
         optionbox.children = tuple(children)
 
-    def _click_option_button(self, b):
-        self.output.clear_output(True)
-        with self.output:
-            print('')
-        if b.description == 'Set Path':
-            if self.fix_path:
-                return
-            else:
-                path = self.path
-            if len(self.path_string_box.value) == 0:
-                with self.output:
-                    print('No path given')
-                return
-            elif not os.path.isabs(self.path_string_box.value):
-                path = path + '/' + self.path_string_box.value
-            else:
-                path = self.path_string_box.value
-            self._update_project(path)
-        if b.description == 'Reset selection':
-            self._clickedFiles = []
-            self._data = None
-            self._update_filebox(self.filebox)
+    @busy_check()
+    def _set_pathbox_path(self, _=None):
+        self._clear_output()
+        if self.fix_path:
+            return
+        else:
+            path = self.path
+        if len(self.path_string_box.value) == 0:
+            with self._output:
+                print('No path given')
+            return
+        elif not os.path.isabs(self.path_string_box.value):
+            path = path + '/' + self.path_string_box.value
+        else:
+            path = self.path_string_box.value
+        self._update_project(path)
+
+    @busy_check()
+    def _reset_data(self, _=None):
+        self._clear_output()
+        self._clickedFiles = []
+        self._data = None
+        self._update_body_box(self._body_box)
 
     @property
     def data(self):
@@ -608,6 +677,7 @@ class ProjectBrowser:
             if new_project is not None:
                 self._project = new_project
 
+    @busy_check()
     def _update_project(self, path):
         if isinstance(path, str):
             rel_path = os.path.relpath(path, self.path)
@@ -692,57 +762,4 @@ class ProjectBrowser:
             # self._clickedFiles.append(filepath)
             self._clickedFiles = [filepath]
 
-    def _update_filebox(self, filebox):
 
-        # item layout definition
-        item_layout = widgets.Layout(width='80%',
-                                     height='30px',
-                                     min_height='24px',
-                                     display='flex',
-                                     align_items="center",
-                                     justify_content='flex-start')
-
-        def on_click_group(b):
-            if self._busy_check():
-                return
-            path = os.path.join(self.path, b.description)
-            self._update_project(path)
-            self._busy_check(False)
-
-        def on_click_file(b):
-            if self._busy_check():
-                return
-            self._on_click_file(b.description)
-            self._update_filebox(filebox)
-            self._busy_check(False)
-
-        def gen_dir_button(dirname):
-            button = widgets.Button(description=dirname,
-                                    icon="folder",
-                                    layout=item_layout)
-            button.style.button_color = self.color["dir"]
-            button.on_click(on_click_group)
-            return button
-
-        def gen_file_button(filename):
-            button = widgets.Button(description=filename,
-                                    icon="file-o",
-                                    layout=item_layout)
-            if os.path.join(self.path, filename) in self._clickedFiles:
-                button.style.button_color = self.color["file_chosen"]
-            else:
-                button.style.button_color = self.color["file"]
-            button.on_click(on_click_file)
-            return button
-
-        dirs = self.dirs + self.nodes if self._node_as_dirs else self.dirs
-        files = self.files if self._node_as_dirs else self.files + self.nodes
-
-        buttons = [gen_dir_button(name) for name in dirs]
-        buttons += [gen_file_button(name) for name in files]
-
-        filebox.children = tuple(buttons)
-
-    def _ipython_display_(self):
-        """Function used by Ipython to display the object."""
-        display(self.gui())
