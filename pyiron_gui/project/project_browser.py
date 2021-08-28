@@ -141,29 +141,39 @@ class HasGroupsBrowser:
         self._files = None
         self._nodes = None
         self._groups = None
-        self._file_ext_filter = ['.h5', '.db']
-        self._node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
         self._busy = False
-        self._show_all = False
-        self._show_files = True
         self._clicked_nodes = []
 
+        self._file_ext_filter = ['.h5', '.db']
+        self._node_filter = ['NAME', 'TYPE', 'VERSION', 'HDF_VERSION']
+        self._show_all = False
+        self._show_files = True
         self._item_layout = widgets.Layout(width='min-content',
                                            height='30px',
                                            min_height='24px',
                                            display='flex',
                                            align_items="center",
                                            justify_content='flex-start')
-
         self._color = {
             "control": "#FF0000",
             "group": '#9999FF',
-            'path': '#DDDDAA',
             'file_chosen': '#FFBBBB',
             'file': '#DDDDDD',
         }
 
         self._update_groups_and_nodes()
+
+    def __copy__(self):
+        new = self.__class__(project=self.project)
+        new._file_ext_filter = self._file_ext_filter
+        new._node_filter = self._node_filter
+        new._show_all = self._show_all
+        new._show_files = self._show_files
+        return new
+
+    def copy(self):
+        """Copy of the browser using a new Vbox."""
+        return self.__copy__()
 
     @property
     def groups(self):
