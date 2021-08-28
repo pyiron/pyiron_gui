@@ -279,17 +279,20 @@ class HasGroupsBrowser:
     def color(self):
         return self._color
 
-    def _go_back(self, _=None):
-        self._history_idx -= 1
+    def _load_history(self, hist_idx=None):
+        if hist_idx is not None:
+            self._history_idx = hist_idx
         self._project = self._history[self._history_idx]
         self._update_groups_and_nodes()
         self.refresh()
 
+    def _go_back(self, _=None):
+        self._history_idx -= 1
+        self._load_history()
+
     def _go_forward(self, _=None):
         self._history_idx += 1
-        self._project = self._history[self._history_idx]
-        self._update_groups_and_nodes()
-        self.refresh()
+        self._load_history()
 
     def _gen_control_buttons(self, layout=None):
         if layout is None:
@@ -404,6 +407,85 @@ class HasGroupsBrowser:
     def _ipython_display_(self):
         """Function used by Ipython to display the object."""
         display(self.gui())
+
+
+class HasGroupsBrowserWithFakePath(HasGroupsBrowser):
+    def __init__(self, project, box=None):
+        self.pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
+        super().__init__(project=project, box=box)
+        self._color['path'] = '#DDDDAA'
+        self._color['home'] = '#999999'
+        self._path_list = ['/']
+
+    @property
+    def project(self):
+        return self._project
+
+    @project.setter
+    def project(self, new_project):
+        if self._fix_position:
+            raise RuntimeError('Not allowed to change the current group.')
+        if not isinstance(new_project, HasGroups):
+            raise TypeError
+        self._project = new_project
+        self._history_idx += 1
+        self._history = self._history[:self._history_idx]
+        self._path_list = self._path_list[:self._history_idx]
+        self._history.append(self.project)
+        self._update_groups_and_nodes()
+        self.refresh()
+
+    def _update_project(self, group_name):
+        super()._update_project(group_name)
+        self._path_list.append(group_name)
+        self.refresh()
+
+    @property
+    def path_list(self):
+        return self._path_list[:self._history_idx+1]
+
+    def _update_pathbox(self, box=None):
+        @busy_check()
+        def on_click(b):
+            self._load_history(b.idx)
+
+        if box is None:
+            box = self.pathbox
+
+        # Home button
+        button = widgets.Button(icon="home",
+                                tooltip='/',
+                                layout=self._item_layout)
+        button.style.button_color = self.color['home']
+        button.idx = 0
+        button.on_click(on_click)
+
+        buttons = [button]
+        # Path buttons
+        for idx, path in enumerate(self.path_list):
+            if idx == 0:
+                continue
+            button = widgets.Button(description=path + '/',
+                                    tooltip=path,
+                                    layout=self._item_layout)
+            button.style.button_color = self.color['path']
+            button.idx = idx
+            button.on_click(on_click)
+            buttons.append(button)
+
+        box.children = tuple(buttons)
+
+    def _update_body_box(self, body_box=None):
+        if body_box is None:
+            body_box = self._body_box
+        body_box.children = tuple([self._wraping_HBox(self._gen_group_buttons()),
+                                   self._wraping_HBox(self._gen_node_buttons())])
+
+    def _gen_box_children(self):
+        box_children = super()._gen_box_children()
+        self._update_pathbox(self.pathbox)
+        return [widgets.HBox(self._gen_control_buttons() + [self.pathbox])] + box_children
+
 
 
 class HasGroupBrowserWithOutput(HasGroupsBrowser):
