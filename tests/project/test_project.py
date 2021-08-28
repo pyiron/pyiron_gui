@@ -72,7 +72,7 @@ class TestProjectBrowser(TestWithProject):
         browser = self.browser.copy()
         self.assertTrue(browser.project is self.browser.project)
         self.assertEqual(browser.path, self.browser.path)
-        self.assertFalse(browser.box is self.browser.box)
+        self.assertFalse(browser._box is self.browser.box)
         self.assertEqual(browser.fix_path, self.browser.fix_path)
 
     def test_configure(self):
@@ -129,11 +129,11 @@ class TestProjectBrowser(TestWithProject):
     def test__on_click_file(self):
         browser = self.browser.copy()
         self.assertEqual(browser._clickedFiles, [])
-        browser._on_click_file('text.txt')
+        browser._select_node('text.txt')
         browser.refresh()
         self.assertEqual(browser._clickedFiles, [join(browser.path, 'text.txt')])
         self.assertEqual(browser.data.data, ["some text"])
-        browser._on_click_file('text.txt')
+        browser._select_node('text.txt')
         self.assertTrue(browser.data is None)
 
     def test_data(self):
@@ -166,7 +166,7 @@ class TestProjectBrowser(TestWithProject):
         self.assertFalse(browser._node_as_dirs)
         self.assertEqual(browser.path, path)
 
-        browser._on_click_file('text.txt')
+        browser._select_node('text.txt')
         self.assertTrue(browser._data is None, msg="This file should not be present in the ToyJob.")
 
         browser._update_project(path)
@@ -208,7 +208,7 @@ class TestProjectBrowser(TestWithProject):
         reset_button = widgets.Button(description="Reset selection")
         set_path_button = widgets.Button(description="Set Path")
 
-        self.browser._on_click_file('text.txt')
+        self.browser._select_node('text.txt')
         self.browser._click_option_button(reset_button)
         self.assertIs(self.browser.data, None)
         self.assertEqual(self.browser._clickedFiles, [])

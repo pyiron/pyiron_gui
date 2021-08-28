@@ -43,7 +43,7 @@ class _BusyCheck:
     def busy(self, value):
         if value:
             for key, val in self._widgets.items():
-                if hasattr(val, 'disabled'):
+                if isinstance(val, widgets.Button):
                     self._widget_state[key] = val.disabled
                     val.disabled = True
         else:
@@ -59,6 +59,7 @@ class _BusyCheck:
     def _busy_check(self, busy=True):
         """Function to disable widget interaction while another update is ongoing."""
         if self.busy and busy:
+            print("I am busy right now!")
             return True
         else:
             self.busy = busy
@@ -68,8 +69,10 @@ class _BusyCheck:
         def decorated(*args, **kwargs):
             if self._busy_check():
                 return
-            function(*args, **kwargs)
-            self._busy_check(False)
+            try:
+                function(*args, **kwargs)
+            finally:
+                self._busy_check(False)
         return decorated
 
     def __call__(self):
@@ -85,7 +88,7 @@ class DisplayOutputGUI:
     The behavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display."""
     def __init__(self, *args, **kwargs):
         self.box = widgets.VBox(*args, **kwargs)
-        self.output = widgets.Output(layout=widgets.Layout(width='100%'))
+        self.output = widgets.Output(layout=widgets.Layout(width='99%'))
         self._display_obj = None
         self._debug = False
         self.refresh()
@@ -95,6 +98,7 @@ class DisplayOutputGUI:
 
     def __enter__(self):
         """Use context manager on the widgets.Output widget"""
+        self.refresh()
         return self.output.__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -119,16 +123,19 @@ class DisplayOutputGUI:
             self._display(default_output)
 
     def _display(self, default_output):
-        with self.output:
-            if self._display_obj is None and default_output is None:
-                raise TypeError("Given 'obj' is of 'NoneType'.")
-            elif self._display_obj is None:
-                print(default_output)
-            elif isinstance(self._display_obj, ObjectWidget):
-                display(self._display_obj.gui)
-            else:
-                plt.ioff()
-                display(self._output_conv())
+        if isinstance(self._display_obj, widgets.DOMWidget):
+            self.box.children = tuple([self._display_obj])
+        else:
+            with self.output:
+                if self._display_obj is None and default_output is None:
+                    raise TypeError("Given 'obj' is of 'NoneType'.")
+                elif self._display_obj is None:
+                    print(default_output)
+                elif isinstance(self._display_obj, ObjectWidget):
+                    self._display(self._display_obj.gui)
+                else:
+                    plt.ioff()
+                    display(self._output_conv())
 
     def _output_conv(self):
         obj = self._display_obj
@@ -176,11 +183,11 @@ class DisplayOutputGUI:
 class HasGroupsBrowser:
     def __init__(self, project, box=None):
         if box is None or box == 'VBox':
-            self.box = widgets.VBox()
+            self._box = widgets.VBox()
         elif box == 'HBox':
-            self.box = widgets.HBox()
+            self._box = widgets.HBox()
         else:
-            self.box = box
+            self._box = box
         self._body_box = widgets.VBox()
 
         if not isinstance(project, HasGroups):
@@ -204,6 +211,7 @@ class HasGroupsBrowser:
                                            display='flex',
                                            align_items="center",
                                            justify_content='flex-start')
+        self._control_layout = self._item_layout
         self._color = {
             "control": "#FF0000",
             "group": '#9999FF',
@@ -212,7 +220,6 @@ class HasGroupsBrowser:
         }
 
         self._update_groups_and_nodes()
-        self.refresh()
 
     def __copy__(self):
         new = self.__class__(project=self.project)
@@ -284,10 +291,12 @@ class HasGroupsBrowser:
         self._update_groups_and_nodes()
         self.refresh()
 
-    def _gen_control_buttons(self):
+    def _gen_control_buttons(self, layout=None):
+        if layout is None:
+            layout = self._control_layout
         back_button = widgets.Button(description="",
                                      icon="arrow-left",
-                                     layout=self._item_layout)
+                                     layout=layout)
         back_button.style.button_color = self.color["control"]
         back_button.on_click(self._go_back)
         if self._history_idx == 0:
@@ -295,7 +304,7 @@ class HasGroupsBrowser:
 
         forward_button = widgets.Button(description='',
                                         icon="arrow-right",
-                                        layout=self._item_layout)
+                                        layout=layout)
         forward_button.style.button_color = self.color["control"]
         forward_button.on_click(self._go_forward)
         if self._history_idx == len(self._history) - 1:
@@ -379,14 +388,18 @@ class HasGroupsBrowser:
                                        self._wraping_HBox(self._gen_group_buttons()),
                                        self._wraping_HBox(self._gen_node_buttons())])
 
-    def refresh(self):
+    def _gen_box_children(self):
         self._update_body_box()
-        self.box.children = tuple([self._body_box])
+        return [self._body_box]
+
+    def refresh(self):
+        """Refresh the project browser."""
+        self._box.children = tuple(self._gen_box_children())
 
     def gui(self):
         """Return the VBox containing the browser."""
         self.refresh()
-        return self.box
+        return self._box
 
     def _ipython_display_(self):
         """Function used by Ipython to display the object."""
@@ -395,35 +408,34 @@ class HasGroupsBrowser:
 
 class HasGroupBrowserWithOutput(HasGroupsBrowser):
     def __init__(self, project, box=None):
-        self._output = DisplayOutputGUI(layout=widgets.Layout(width='45%', height='100%'))
+        self._output = DisplayOutputGUI(layout=widgets.Layout(width='50%', height='100%'))
+        super().__init__(project=project, box=box)
         self._body_box = widgets.VBox(layout=widgets.Layout(width='50%', height='100%', justify_content='flex-start'))
         self._data = None
-        super().__init__(project=project, box=box)
-        self.refresh()
 
     @property
     def data(self):
         return self._data
 
     def _clear_output(self):
+        print('Clear output')
         self._output.clear_output(True)
         with self._output:
             print('')
 
-    def refresh(self):
-        """Refresh the project browser."""
-        self._clear_output()
+    def _gen_box_children(self):
         if isinstance(self.project, BaseWrapper):
+            print('displayed project')
             self._output.display(self.project)
 
         self._update_groups_and_nodes()
+        self._update_body_box(self._body_box)
         body = widgets.HBox([self._body_box, self._output.box],
                             layout=widgets.Layout(
                                 min_height='100px',
                                 max_height='800px'
                             ))
-        self._update_body_box(self._body_box)
-        self.box.children = tuple([body])
+        return [body]
 
     def _update_project_worker(self, rel_path):
         new_project = self.project[rel_path]
@@ -437,9 +449,8 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
         self.project = new_project
 
     def _update_project(self, group_name):
-        self._update_project_worker(group_name)
         self._clear_output()
-        self.refresh()
+        self._update_project_worker(group_name)
 
     def _select_node(self, node):
         self._clear_output()
@@ -478,7 +489,18 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
             fix_path (bool): If True the path in the file system cannot be changed.
             show_files(bool): If True files (from project.list_files()) are displayed.
         """
+        self.pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
+        self.optionbox = widgets.HBox()
+        self.path_string_box = widgets.Text(description="(rel) Path",
+                                            layout=widgets.Layout(width='min-content')
+                                            )
         super().__init__(project=project, box=Vbox)
+        self._item_layout = widgets.Layout(width='80%',
+                                           height='30px',
+                                           min_height='24px',
+                                           display='flex',
+                                           align_items="center",
+                                           justify_content='flex-start')
         self._show_files = show_files
         self._initial_project_path = self.path
         self._color['path'] = '#DDDDAA'
@@ -486,12 +508,6 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
 
         self._fix_position = fix_path
         self._hide_path = True
-        self.pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
-        self.optionbox = widgets.HBox()
-        self.path_string_box = widgets.Text(description="(rel) Path",
-                                            layout=widgets.Layout(width='min-content')
-                                            )
-        self.refresh()
 
     @property
     def _initial_project(self):
@@ -556,10 +572,6 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         return self.__copy__()
 
     @property
-    def project(self):
-        return self._project
-
-    @property
     def path(self):
         """Path of the project."""
         return self.project.path
@@ -575,19 +587,12 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         except AttributeError:
             return None
 
-    def refresh(self):
-        """Refresh the project browser."""
-        super().refresh()
-
-        body = widgets.HBox([self._body_box, self._output.box],
-                            layout=widgets.Layout(
-                                min_height='100px',
-                                max_height='800px'
-                            ))
+    def _gen_box_children(self):
+        body = super()._gen_box_children()
         self.path_string_box = self.path_string_box.__class__(description="(rel) Path", value='')
         self._update_optionbox(self.optionbox)
         self._update_pathbox(self.pathbox)
-        self.box.children = tuple([self.optionbox, self.pathbox, body])
+        return [self.optionbox, self.pathbox] + body
 
     def configure(self, Vbox=None, fix_path=None, show_files=None, hide_path=None):
         """
@@ -626,24 +631,17 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
 
     @busy_check()
     def _set_pathbox_path(self, _=None):
-        self._clear_output()
         if self.fix_path:
             return
-        else:
-            path = self.path
         if len(self.path_string_box.value) == 0:
             with self._output:
                 print('No path given')
             return
-        elif not os.path.isabs(self.path_string_box.value):
-            path = path + '/' + self.path_string_box.value
-        else:
-            path = self.path_string_box.value
+        path = self.path_string_box.value
         self._update_project(path)
 
     @busy_check()
     def _reset_data(self, _=None):
-        self._clear_output()
         self._clickedFiles = []
         self._data = None
         self._update_body_box(self._body_box)
@@ -670,25 +668,24 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
                     new_project = new_project2
         except (ValueError, AttributeError):
             self.path_string_box = self.path_string_box.__class__(description="(rel) Path", value='')
-            with self.output:
+            with self._output:
                 print("No valid path")
             return
         else:
             if new_project is not None:
-                self._project = new_project
+                self.project = new_project
 
-    @busy_check()
     def _update_project(self, path):
+        self._clear_output()
         if isinstance(path, str):
-            rel_path = os.path.relpath(path, self.path)
-            if rel_path == '.':
+            if os.path.isabs(path):
+                path = os.path.relpath(path, self.path)
+            if path == '.':
                 self.refresh()
                 return
-            self._update_project_worker(rel_path)
+            self._update_project_worker(path)
         else:
-            self._project = path
-        self.output.clear_output(True)
-        self.refresh()
+            self.project = path
 
     def _gen_pathbox_path_list(self):
         """Internal helper function to generate a list of paths from the current path."""
@@ -706,11 +703,9 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
 
     def _update_pathbox(self, box):
 
+        @busy_check()
         def on_click(b):
-            if self._busy_check():
-                return
             self._update_project(b.path)
-            self._busy_check(False)
 
         buttons = []
         len_root_path = len(self._project_root_path[:-1]) if self._project_root_path is not None else 0
@@ -743,23 +738,27 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
 
         box.children = tuple(buttons)
 
-    def _on_click_file(self, filename):
+    def _select_node(self, filename):
         filepath = os.path.join(self.path, filename)
-        self.output.clear_output(True)
+        self._clear_output()
         try:
             data = self.project[filename]
         except(KeyError, IOError):
             data = None
 
-        self.output.display(data, default_output=[filename])
+        self._output.display(data, default_output=[filename])
 
-        if filepath in self._clickedFiles:
+        if filepath in self._clicked_nodes:
             self._data = None
-            self._clickedFiles.remove(filepath)
+            self._clicked_nodes.remove(filepath)
         else:
             if data is not None:
                 self._data = FileData(data=data, file=filename, metadata={"path": filepath})
             # self._clickedFiles.append(filepath)
-            self._clickedFiles = [filepath]
+            self._clicked_nodes = [filepath]
 
+    def _update_body_box(self, body_box=None):
+        if body_box is None:
+            body_box = self._body_box
+        body_box.children = tuple(self._gen_group_buttons() + self._gen_node_buttons())
 
