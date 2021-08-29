@@ -411,7 +411,7 @@ class HasGroupsBrowser:
 
 class HasGroupsBrowserWithFakePath(HasGroupsBrowser):
     def __init__(self, project, box=None):
-        self.pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
+        self._pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
         super().__init__(project=project, box=box)
         self._color['path'] = '#DDDDAA'
         self._color['home'] = '#999999'
@@ -450,12 +450,12 @@ class HasGroupsBrowserWithFakePath(HasGroupsBrowser):
             self._load_history(b.idx)
 
         if box is None:
-            box = self.pathbox
+            box = self._pathbox
 
         # Home button
         button = widgets.Button(icon="home",
                                 tooltip='/',
-                                layout=self._item_layout)
+                                layout=self._control_layout)
         button.style.button_color = self.color['home']
         button.idx = 0
         button.on_click(on_click)
@@ -467,7 +467,7 @@ class HasGroupsBrowserWithFakePath(HasGroupsBrowser):
                 continue
             button = widgets.Button(description=path + '/',
                                     tooltip=path,
-                                    layout=self._item_layout)
+                                    layout=self._control_layout)
             button.style.button_color = self.color['path']
             button.idx = idx
             button.on_click(on_click)
@@ -483,9 +483,8 @@ class HasGroupsBrowserWithFakePath(HasGroupsBrowser):
 
     def _gen_box_children(self):
         box_children = super()._gen_box_children()
-        self._update_pathbox(self.pathbox)
-        return [widgets.HBox(self._gen_control_buttons() + [self.pathbox])] + box_children
-
+        self._update_pathbox(self._pathbox)
+        return [widgets.HBox(self._gen_control_buttons() + [self._pathbox])] + box_children
 
 
 class HasGroupBrowserWithOutput(HasGroupsBrowser):
