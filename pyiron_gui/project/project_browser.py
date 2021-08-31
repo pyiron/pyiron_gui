@@ -188,7 +188,7 @@ class HasGroupsBrowser:
             self._box = widgets.HBox()
         else:
             self._box = box
-        self._body_box = widgets.VBox()
+        self._body_box = widgets.VBox(layout=widgets.Layout(width='100%'))
 
         if not isinstance(project, HasGroups):
             raise TypeError()
@@ -387,7 +387,7 @@ class HasGroupsBrowser:
             body_box.children = tuple([self._wraping_HBox(self._gen_group_buttons()),
                                        self._wraping_HBox(self._gen_node_buttons())])
         else:
-            body_box.children = tuple([self._wraping_HBox(self._gen_control_buttons()),
+            body_box.children = tuple([widgets.HBox(self._gen_control_buttons()),
                                        self._wraping_HBox(self._gen_group_buttons()),
                                        self._wraping_HBox(self._gen_node_buttons())])
 
@@ -499,7 +499,6 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
         return self._data
 
     def _clear_output(self):
-        print('Clear output')
         self._output.clear_output(True)
         with self._output:
             print('')
