@@ -146,6 +146,8 @@ class DisplayOutputGUI:
 
         if hasattr(obj, '_repr_html_'):
             return obj  # ._repr_html_()
+        elif isinstance(obj, FileData):
+            return obj.data
         elif isinstance(obj, str):
             return (obj)
         elif isinstance(obj, nbformat.notebooknode.NotebookNode):
