@@ -195,6 +195,7 @@ class HasGroupsBrowser:
         if not isinstance(project, HasGroups):
             raise TypeError()
         self._project = project
+        self._data = None
         self._history = [project]
         self._history_idx = 0
         self._files = None
@@ -222,6 +223,10 @@ class HasGroupsBrowser:
         }
 
         self._update_groups_and_nodes()
+
+    @property
+    def data(self):
+        return self._data
 
     def __copy__(self):
         new = self.__class__(project=self.project)
@@ -354,8 +359,13 @@ class HasGroupsBrowser:
     def _select_node(self, node):
         if node in self._clicked_nodes:
             self._clicked_nodes.remove(node)
+            self._data = None
         else:
             self._clicked_nodes = [node]
+            try:
+                self._data = self.project[node]
+            except(KeyError, IOError):
+                self._data = None
 
     def _gen_node_buttons(self, nodes=None):
         if nodes is None:
@@ -494,11 +504,6 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
         self._output = DisplayOutputGUI(layout=widgets.Layout(width='50%', height='100%'))
         super().__init__(project=project, box=box)
         self._body_box = widgets.VBox(layout=widgets.Layout(width='50%', height='100%', justify_content='flex-start'))
-        self._data = None
-
-    @property
-    def data(self):
-        return self._data
 
     def _clear_output(self):
         self._output.clear_output(True)
@@ -536,16 +541,9 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
 
     def _select_node(self, node):
         self._clear_output()
-        try:
-            data = self.project[node]
-        except(KeyError, IOError):
-            data = None
-        self._output.display(data, default_output=[node])
         super()._select_node(node)
         if node in self._clicked_nodes:
-            self._data = data
-        else:
-            self._data = None
+            self._output.display(self.data, default_output=[node])
 
 
 class ProjectBrowser(HasGroupBrowserWithOutput):
@@ -821,6 +819,7 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         box.children = tuple(buttons)
 
     def _select_node(self, filename):
+        super()._select_node(filename)
         filepath = os.path.join(self.path, filename)
         self._clear_output()
         try:
