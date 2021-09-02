@@ -421,7 +421,7 @@ class HasGroupsBrowser:
         display(self.gui())
 
 
-class HasGroupsBrowserWithFakePath(HasGroupsBrowser):
+class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
     def __init__(self, project, box=None):
         self._pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
         super().__init__(project=project, box=box)
