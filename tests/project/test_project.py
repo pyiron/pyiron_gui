@@ -61,11 +61,12 @@ class TestProjectBrowser(TestWithProject):
         self.assertFalse(self.browser.show_files)
         self.assertTrue(self.browser.hide_path)
         self.assertFalse(self.browser.fix_path)
-        self.assertTrue(self.browser._node_as_dirs)
+        self.assertTrue(self.browser._node_as_group)
 
         vbox = widgets.VBox()
         browser = ProjectBrowser(project=self.project, Vbox=vbox)
         self.assertTrue(browser.box is vbox and browser.project is self.project)
+        browser.refresh()
         self.assertTrue(len(browser.box.children) > 0)
 
     def test_copy(self):
@@ -124,17 +125,17 @@ class TestProjectBrowser(TestWithProject):
         self.assertEqual(self.browser.nodes, ['testjob'])
 
     def test_dirs(self):
-        self.assertEqual(self.browser.dirs, ['sub'])
+        self.assertEqual(self.browser.groups, ['sub'])
 
     def test__on_click_file(self):
         browser = self.browser.copy()
-        self.assertEqual(browser._clickedFiles, [])
+        self.assertEqual(browser._clicked_nodes, [])
         browser._select_node('text.txt')
         browser.refresh()
-        self.assertEqual(browser._clickedFiles, [join(browser.path, 'text.txt')])
+        self.assertEqual(browser._clicked_nodes, [join(browser.path, 'text.txt')])
         self.assertEqual(browser.data.data, ["some text"])
         browser._select_node('text.txt')
-        self.assertTrue(browser.data is None)
+        self.assertTrue(browser.data is None, msg=f"Expected browser.data to be None, but got {browser.data}")
 
     def test_data(self):
         browser = self.browser.copy()
@@ -163,7 +164,7 @@ class TestProjectBrowser(TestWithProject):
         browser._update_project(path)
         self.assertIsInstance(browser.project._wrapped_object, ToyJob,
                               msg=f"Any pyiron object with 'TYPE' in list_nodes() should be wrapped.")
-        self.assertFalse(browser._node_as_dirs)
+        self.assertFalse(browser._node_as_group)
         self.assertEqual(browser.path, path)
 
         browser._select_node('text.txt')
@@ -179,11 +180,6 @@ class TestProjectBrowser(TestWithProject):
         browser._update_project("NotExistingPath")
         self.assertEqual(browser.path, self.project.path)
         self.assertIs(browser.project, self.project)
-
-    def test__busy_check(self):
-        self.assertFalse(self.browser._busy_check())
-        self.assertTrue(self.browser._busy_check())
-        self.assertFalse(self.browser._busy_check(busy=False))
 
     def test_gui(self):
         self.browser.gui()
@@ -209,38 +205,39 @@ class TestProjectBrowser(TestWithProject):
         set_path_button = widgets.Button(description="Set Path")
 
         self.browser._select_node('text.txt')
-        self.browser._click_option_button(reset_button)
+        self.browser._reset_data(reset_button)
         self.assertIs(self.browser.data, None)
         self.assertEqual(self.browser._clickedFiles, [])
 
-        self.browser._click_option_button(set_path_button)
+        self.browser._set_pathbox_path(set_path_button)
 
         self.browser.fix_path = True
         self.browser.path_string_box.value = "sub"
-        self.browser._click_option_button(set_path_button)
+        self.browser._set_pathbox_path(set_path_button)
         self.assertEqual(self.browser.path, self.project.path)
 
         self.browser.fix_path = False
         self.browser.path_string_box.value = "sub"
-        self.browser._click_option_button(set_path_button)
+        self.browser._set_pathbox_path(set_path_button)
         self.assertEqual(self.browser.path, join(self.project.path, 'sub/'))
         self.assertEqual(self.browser.path_string_box.value, "")
 
         self.browser.path_string_box.value = self.project.path
-        self.browser._click_option_button(set_path_button)
+        self.browser._set_pathbox_path(set_path_button)
         self.assertEqual(self.browser.path, self.project.path)
         self.assertEqual(self.browser.path_string_box.value, "")
 
     def test_color(self):
         color_keys = self.browser.color.keys()
-        for key in ['dir', 'file', 'file_chosen', 'path', 'home']:
-            self.assertTrue(key in color_keys)
-            color = self.browser.color[key]
-            self.assertEqual(len(color), 7)
-            self.assertEqual(color[0], '#')
-            self.assertTrue(0 <= int(color[1:3], base=16) <= 255)
-            self.assertTrue(0 <= int(color[3:5], base=16) <= 255)
-            self.assertTrue(0 <= int(color[5:7], base=16) <= 255)
+        for key in ['group', 'file', 'file_chosen', 'path', 'home']:
+            with self.subTest(key):
+                self.assertTrue(key in color_keys)
+                color = self.browser.color[key]
+                self.assertEqual(len(color), 7)
+                self.assertEqual(color[0], '#')
+                self.assertTrue(0 <= int(color[1:3], base=16) <= 255)
+                self.assertTrue(0 <= int(color[3:5], base=16) <= 255)
+                self.assertTrue(0 <= int(color[5:7], base=16) <= 255)
 
 
 if __name__ == '__main__':

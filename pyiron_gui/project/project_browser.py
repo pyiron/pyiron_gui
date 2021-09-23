@@ -125,14 +125,14 @@ class DisplayOutputGUI:
     def _display(self, default_output):
         if isinstance(self._display_obj, widgets.DOMWidget):
             self.box.children = tuple([self._display_obj])
+        elif isinstance(self._display_obj, ObjectWidget):
+            self.box.children = tuple([self._display_obj.gui])
         else:
             with self.output:
                 if self._display_obj is None and default_output is None:
                     raise TypeError("Given 'obj' is of 'NoneType'.")
                 elif self._display_obj is None:
                     print(default_output)
-                elif isinstance(self._display_obj, ObjectWidget):
-                    self._display(self._display_obj.gui)
                 else:
                     plt.ioff()
                     display(self._output_conv())
@@ -819,7 +819,6 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         box.children = tuple(buttons)
 
     def _select_node(self, filename):
-        super()._select_node(filename)
         filepath = os.path.join(self.path, filename)
         self._clear_output()
         try:
