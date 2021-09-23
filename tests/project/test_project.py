@@ -129,13 +129,24 @@ class TestProjectBrowser(TestWithProject):
 
     def test__on_click_file(self):
         browser = self.browser.copy()
-        self.assertEqual(browser._clicked_nodes, [])
-        browser._select_node('text.txt')
-        browser.refresh()
-        self.assertEqual(browser._clicked_nodes, [join(browser.path, 'text.txt')])
-        self.assertEqual(browser.data.data, ["some text"])
-        browser._select_node('text.txt')
-        self.assertTrue(browser.data is None, msg=f"Expected browser.data to be None, but got {browser.data}")
+        with self.subTest('init'):
+            self.assertEqual(browser._clicked_nodes, [])
+        with self.subTest("select"):
+            browser._select_node('text.txt')
+            browser.refresh()
+            self.assertEqual(browser._clicked_nodes, [join(browser.path, 'text.txt')])
+            self.assertEqual(browser.data.data, ["some text"])
+        with self.subTest('de-select'):
+            browser._select_node('text.txt')
+            self.assertIsNone(browser.data, msg=f"Expected browser.data to be None, but got {browser.data}")
+        with self.subTest("re-select"):
+            browser._select_node('text.txt')
+            browser.refresh()
+            self.assertEqual(browser._clicked_nodes, [join(browser.path, 'text.txt')])
+            self.assertEqual(browser.data.data, ["some text"])
+        with self.subTest("invalid node"):
+            browser._select_node('NotAFileName.dat')
+            self.assertIsNone(browser.data, msg=f"Expected browser.data to be None, but got {browser.data}")
 
     def test_data(self):
         browser = self.browser.copy()

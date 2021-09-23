@@ -823,7 +823,7 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         self._clear_output()
         try:
             data = self.project[filename]
-        except(KeyError, IOError):
+        except(ValueError, KeyError, IOError):
             data = None
 
         self._output.display(data, default_output=[filename])
@@ -834,6 +834,8 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         else:
             if data is not None:
                 self._data = FileData(data=data, file=filename, metadata={"path": filepath})
+            else:
+                self._data = None
             # self._clickedFiles.append(filepath)
             self._clicked_nodes = [filepath]
 
