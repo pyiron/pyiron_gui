@@ -512,7 +512,6 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
 
     def _gen_box_children(self):
         if isinstance(self.project, BaseWrapper):
-            print('displayed project')
             self._output.display(self.project)
 
         self._update_groups_and_nodes()
