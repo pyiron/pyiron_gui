@@ -1,7 +1,6 @@
 # coding: utf-8
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
-import functools
 import os
 
 import ipywidgets as widgets
@@ -15,8 +14,10 @@ from IPython.core.display import display, HTML
 from pyiron_base import Project as BaseProject
 from pyiron_base.interfaces.has_groups import HasGroups
 from pyiron_base.generic.filedata import FileData
+from pyiron_gui.widgets.widgets import WrapingHBox
 from pyiron_gui.wrapper.widgets import ObjectWidget, NumpyWidget
 from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper
+from pyiron_gui.utils.busy_check import busy_check
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
@@ -28,58 +29,6 @@ __maintainer__ = "Niklas Siemer"
 __email__ = "siemer@mpie.de"
 __status__ = "development"
 __date__ = "Feb 02, 2021"
-
-
-class _BusyCheck:
-    def __init__(self):
-        self._busy = False
-        self._widget_state = {}
-
-    @property
-    def busy(self):
-        return self._busy
-
-    @busy.setter
-    def busy(self, value):
-        if value:
-            for key, val in self._widgets.items():
-                if isinstance(val, widgets.Button):
-                    self._widget_state[key] = val.disabled
-                    val.disabled = True
-        else:
-            wid = self._widgets
-            for key, val in self._widget_state.items():
-                wid[key].disabled = val
-        self._busy = value
-
-    @property
-    def _widgets(self):
-        return widgets.Widget.widgets
-
-    def _busy_check(self, busy=True):
-        """Function to disable widget interaction while another update is ongoing."""
-        if self.busy and busy:
-            print("I am busy right now!")
-            return True
-        else:
-            self.busy = busy
-
-    def _decorator_function(self, function):
-        @functools.wraps(function)
-        def decorated(*args, **kwargs):
-            if self._busy_check():
-                return
-            try:
-                function(*args, **kwargs)
-            finally:
-                self._busy_check(False)
-        return decorated
-
-    def __call__(self):
-        return self._decorator_function
-
-
-busy_check = _BusyCheck()
 
 
 class DisplayOutputGUI:
@@ -385,25 +334,16 @@ class HasGroupsBrowser:
             node_list.append(button)
         return node_list
 
-    @staticmethod
-    def _wraping_HBox(children):
-        """Construct a Box widget with similar properties as the normal HBox but with wrapping behavior."""
-        box = widgets.Box(children)
-        box.layout.display = 'flex'
-        box.layout.align_items = 'stretch'
-        box.layout.flex_flow = 'row wrap'
-        return box
-
     def _update_body_box(self, body_box=None):
         if body_box is None:
             body_box = self._body_box
         if self._fix_position:
-            body_box.children = tuple([self._wraping_HBox(self._gen_group_buttons()),
-                                       self._wraping_HBox(self._gen_node_buttons())])
+            body_box.children = tuple([WrapingHBox(self._gen_group_buttons()),
+                                       WrapingHBox(self._gen_node_buttons())])
         else:
             body_box.children = tuple([widgets.HBox(self._gen_control_buttons()),
-                                       self._wraping_HBox(self._gen_group_buttons()),
-                                       self._wraping_HBox(self._gen_node_buttons())])
+                                       WrapingHBox(self._gen_group_buttons()),
+                                       WrapingHBox(self._gen_node_buttons())])
 
     def _gen_box_children(self):
         self._update_body_box()
@@ -492,8 +432,8 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
     def _update_body_box(self, body_box=None):
         if body_box is None:
             body_box = self._body_box
-        body_box.children = tuple([self._wraping_HBox(self._gen_group_buttons()),
-                                   self._wraping_HBox(self._gen_node_buttons())])
+        body_box.children = tuple([WrapingHBox(self._gen_group_buttons()),
+                                   WrapingHBox(self._gen_node_buttons())])
 
     def _gen_box_children(self):
         box_children = super()._gen_box_children()
