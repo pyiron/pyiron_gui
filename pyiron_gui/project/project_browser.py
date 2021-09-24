@@ -273,6 +273,7 @@ class HasGroupsBrowser:
         return [back_button, forward_button]
 
     def _update_groups_and_nodes(self):
+        self._clicked_nodes = []
         self._nodes = self.project.list_nodes()
         self._groups = self.project.list_groups()
         if hasattr(self.project, 'list_files'):
@@ -785,3 +786,18 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
             body_box = self._body_box
         body_box.children = tuple(self._gen_group_buttons() + self._gen_node_buttons())
 
+
+class DataContainerGUI(HasGroupsBrowserWithHistoryPath, HasGroupBrowserWithOutput):
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, val):
+        if len(self._clicked_nodes) > 0 and self._clicked_nodes[0] in self.project.list_nodes():
+            node = self._clicked_nodes[0]
+            self.project[node] = val
+            self._clicked_nodes = []
+            self._select_node(node)
+        else:
+            raise ValueError("No node selected.")
