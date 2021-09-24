@@ -235,6 +235,8 @@ class HasGroupsBrowser:
         new._show_all = self._show_all
         new._show_files = self._show_files
         new._fix_position = self._fix_position
+        new._history = self._history.copy()
+        new._history_idx = self._history_idx
         return new
 
     def copy(self):
