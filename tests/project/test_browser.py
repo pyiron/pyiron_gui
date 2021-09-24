@@ -13,7 +13,8 @@ import numpy as np
 from pyiron_base._tests import TestWithProject
 from pyiron_base import DataContainer, Project
 from pyiron_gui import activate_gui
-from pyiron_gui.project.project_browser import ProjectBrowser, HasGroupsBrowser, HasGroupsBrowserWithHistoryPath
+from pyiron_gui.project.project_browser import (ProjectBrowser, HasGroupsBrowser,
+                                                HasGroupsBrowserWithHistoryPath, HasGroupBrowserWithOutput)
 from pyiron_gui.wrapper.wrapper import PyironWrapper
 from tests.toy_job_run import ToyJob
 
@@ -227,6 +228,59 @@ class TestHasGroupsBrowserWithHistoryPath(unittest.TestCase):
         self.browser._on_click_group(widgets.Button(description='B1'))
         self.browser._load_history(0)
         self.assertIs(self.browser.project, self.data_container)
+
+
+class TestHasGroupsBrowserWithOutput(TestWithProject):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        job = cls.project.create_job(ToyJob, 'testjob')
+        job.run()
+        hdf = cls.project.create_hdf(cls.project.path, 'test_hdf.h5')
+        hdf['key'] = 'value'
+        Project(cls.project.path + 'sub')
+        with open(cls.project.path+'text.txt', 'w') as f:
+            f.write('some text')
+
+    def setUp(self):
+        self.browser = HasGroupBrowserWithOutput(self.project)
+
+    def test_nodes(self):
+        self.assertEqual(self.browser.nodes, ['testjob'])
+
+    def test_groups(self):
+        self.assertEqual(self.browser.groups, ['sub'])
+
+    def test__on_click_file(self):
+        browser = self.browser.copy()
+        with self.subTest('init'):
+            self.assertEqual(browser._clicked_nodes, [])
+        with self.subTest("select"):
+            browser._select_node('text.txt')
+            browser.refresh()
+            self.assertEqual(browser._clicked_nodes, ['text.txt'])
+            self.assertEqual(browser.data, ["some text"])
+        with self.subTest('de-select'):
+            browser._select_node('text.txt')
+            self.assertIsNone(browser.data, msg=f"Expected browser.data to be None, but got {browser.data}")
+        with self.subTest("re-select"):
+            browser._select_node('text.txt')
+            browser.refresh()
+            self.assertEqual(browser._clicked_nodes, ['text.txt'])
+            self.assertEqual(browser.data, ["some text"])
+        with self.subTest("invalid node"):
+            browser._select_node('NotAFileName.dat')
+            self.assertIsNone(browser.data, msg=f"Expected browser.data to be None, but got {browser.data}")
+
+    def test__update_project(self):
+        browser = self.browser.copy()
+        browser._update_project('testjob')
+        self.assertIsInstance(browser.project._wrapped_object, ToyJob,
+                              msg=f"Any pyiron object with 'TYPE' in list_nodes() should be wrapped.")
+        self.assertFalse(browser._node_as_group)
+
+        browser._select_node('text.txt')
+        self.assertTrue(browser._data is None, msg="This file should not be present in the ToyJob.")
 
 
 class TestProjectBrowser(TestWithProject):
