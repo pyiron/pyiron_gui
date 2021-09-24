@@ -366,7 +366,7 @@ class HasGroupsBrowser:
             self._clicked_nodes = [node]
             try:
                 self._data = self.project[node]
-            except(KeyError, IOError):
+            except(KeyError, IOError, ValueError):
                 self._data = None
 
     def _gen_node_buttons(self, nodes=None):
