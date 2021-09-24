@@ -13,7 +13,7 @@ import numpy as np
 from pyiron_base._tests import TestWithProject
 from pyiron_base import DataContainer, Project
 from pyiron_gui import activate_gui
-from pyiron_gui.project.project_browser import ProjectBrowser, HasGroupsBrowser
+from pyiron_gui.project.project_browser import ProjectBrowser, HasGroupsBrowser, HasGroupsBrowserWithHistoryPath
 from pyiron_gui.wrapper.wrapper import PyironWrapper
 from tests.toy_job_run import ToyJob
 
@@ -109,6 +109,31 @@ class TestHasGroupsBrowser(unittest.TestCase):
             self.assertEqual(self.browser._clicked_nodes, [])
             self.assertIsNone(self.browser.data)
 
+    def test_copy(self):
+        self.test__on_click_group_B()
+        cp = self.browser.copy()
+        self.assertEqual(cp.groups, ['B1', 'B2'])
+        self.assertEqual(cp.nodes, ['B3', 'B4'])
+        self.assertFalse(cp._history is self.browser._history)
+
+        cp._go_back()
+        self.assertEqual(cp.groups, ['B', 'C', 'E'])
+        self.assertEqual(cp.nodes, ['A', 'D'])
+        self.assertEqual(self.browser.groups, ['B1', 'B2'])
+        self.assertEqual(self.browser.nodes, ['B3', 'B4'])
+
+    def test_project(self):
+        self.assertIs(self.browser.project, self.data_container)
+        dc = TEST_DATA_CONTAINER.copy()
+        self.browser.project = dc
+        self.assertIs(self.browser.project, dc)
+
+        self.browser._go_back()
+        self.assertIs(self.browser.project, self.data_container)
+
+        self.browser._go_forward()
+        self.assertIs(self.browser.project, dc)
+
     def test_navigation(self):
         self.browser._on_click_group(widgets.Button(description='B'))
         self.browser._on_click_group(widgets.Button(description='B1'))
@@ -144,6 +169,64 @@ class TestHasGroupsBrowser(unittest.TestCase):
             self.browser._go_forward()
             self.assertEqual(self.browser.groups, [])
             self.assertEqual(self.browser.nodes, ['h', 'i', 'j', 'k', 'l', 'm', 'n'])
+
+
+class TestHasGroupsBrowserWithHistoryPath(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.data_container = TEST_DATA_CONTAINER.copy()
+
+    def setUp(self):
+        self.browser = HasGroupsBrowserWithHistoryPath(self.data_container)
+
+    def test_navigation(self):
+        self.browser._on_click_group(widgets.Button(description='B'))
+        self.browser._on_click_group(widgets.Button(description='B1'))
+        self.assertEqual(self.browser.groups, [])
+        self.assertEqual(self.browser.nodes, ['a', 'b', 'c', 'd', 'e', 'f', 'g'])
+        self.assertEqual(self.browser.path_list, ['/', 'B', 'B1'])
+
+        with self.subTest('Go back'):
+            self.browser._go_back()
+            self.assertEqual(self.browser.groups, ['B1', 'B2'])
+            self.assertEqual(self.browser.nodes, ['B3', 'B4'])
+            self.assertEqual(self.browser.path_list, ['/', 'B'])
+
+        with self.subTest('Go forward'):
+            self.browser._go_forward()
+            self.assertEqual(self.browser.groups, [])
+            self.assertEqual(self.browser.nodes, ['a', 'b', 'c', 'd', 'e', 'f', 'g'])
+            self.assertEqual(self.browser.path_list, ['/', 'B', 'B1'])
+
+        with self.subTest('Go back again'):
+            self.browser._go_back()
+            self.assertEqual(self.browser.groups, ['B1', 'B2'])
+            self.assertEqual(self.browser.nodes, ['B3', 'B4'])
+            self.assertEqual(self.browser.path_list, ['/', 'B'])
+
+        with self.subTest('Open other group'):
+            self.browser._on_click_group(widgets.Button(description='B2'))
+            self.assertEqual(self.browser.groups, [])
+            self.assertEqual(self.browser.nodes, ['h', 'i', 'j', 'k', 'l', 'm', 'n'])
+            self.assertEqual(self.browser.path_list, ['/', 'B', 'B2'])
+
+        with self.subTest('Go back 3'):
+            self.browser._go_back()
+            self.assertEqual(self.browser.groups, ['B1', 'B2'])
+            self.assertEqual(self.browser.nodes, ['B3', 'B4'])
+            self.assertEqual(self.browser.path_list, ['/', 'B'])
+
+        with self.subTest('Go forward to new group'):
+            self.browser._go_forward()
+            self.assertEqual(self.browser.groups, [])
+            self.assertEqual(self.browser.nodes, ['h', 'i', 'j', 'k', 'l', 'm', 'n'])
+            self.assertEqual(self.browser.path_list, ['/', 'B', 'B2'])
+
+    def test_home_button(self):
+        self.browser._on_click_group(widgets.Button(description='B'))
+        self.browser._on_click_group(widgets.Button(description='B1'))
+        self.browser._load_history(0)
+        self.assertIs(self.browser.project, self.data_container)
 
 
 class TestProjectBrowser(TestWithProject):
