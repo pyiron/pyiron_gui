@@ -131,7 +131,7 @@ class DisplayOutputGUI:
             return obj
 
 
-class HasGroupsBrowser:
+class HasGroupsBrowser(HasGroups):
     def __init__(self, project, box=None):
         if box is None or box == 'VBox':
             self._box = widgets.VBox()
@@ -147,9 +147,6 @@ class HasGroupsBrowser:
         self._data = None
         self._history = [project]
         self._history_idx = 0
-        self._files = None
-        self._nodes = None
-        self._groups = None
         self._clicked_nodes = []
 
         self._file_ext_filter = ['.h5', '.db']
@@ -192,25 +189,40 @@ class HasGroupsBrowser:
         """Copy of the browser using a new Vbox."""
         return self.__copy__()
 
+    def __getitem__(self, item):
+        return self.project[item]
+
     @property
     def groups(self):
-        return self._groups
+        return self.list_groups()
+
+    def _list_groups(self):
+        return self.project.list_groups()
 
     @property
     def nodes(self):
+        return self.list_nodes()
+
+    def _list_nodes(self):
         if self._show_all:
-            return self._nodes
+            return self.project.list_nodes()
         else:
-            return [node for node in self._nodes if node not in self._node_filter]
+            return [node for node in self.project.list_nodes() if node not in self._node_filter]
 
     @property
     def files(self):
-        if self._show_all:
-            return self._files
-        elif self._node_as_group and self._show_files:
-            return [file for file in self._files if not file.endswith(tuple(self._file_ext_filter))]
-        else:
-            return []
+        return self._list_files()
+
+    def _list_files(self):
+        if hasattr(self.project, 'list_files'):
+            if self._show_all:
+                return self.project.list_files()
+            elif self._node_as_group and self._show_files:
+                return [file for file in self.project.list_files() if not file.endswith(tuple(self._file_ext_filter))]
+        return []
+
+    def _update_groups_and_nodes(self):
+        pass
 
     @property
     def project(self):
@@ -271,14 +283,6 @@ class HasGroupsBrowser:
         if self._history_idx == len(self._history) - 1:
             forward_button.disabled = True
         return [back_button, forward_button]
-
-    def _update_groups_and_nodes(self):
-        self._nodes = self.project.list_nodes()
-        self._groups = self.project.list_groups()
-        if hasattr(self.project, 'list_files'):
-            self._files = self.project.list_files()
-        else:
-            self._files = []
 
     def _update_project(self, group_name):
         self.project = self.project[group_name]
