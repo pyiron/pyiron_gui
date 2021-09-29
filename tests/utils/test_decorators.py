@@ -6,7 +6,7 @@ import unittest
 
 import ipywidgets as widgets
 
-from pyiron_gui.utils.busy_check import _BusyCheck
+from pyiron_gui.utils.decorators import _BusyCheck, clickable
 
 busy_check = _BusyCheck()
 
@@ -53,3 +53,31 @@ class TestBusyCheck(unittest.TestCase):
         self.assertTrue(button.disabled)
         busy_check.busy = False
         self.assertFalse(button.disabled)
+
+
+class TestClickable(unittest.TestCase):
+
+    @clickable
+    def _decorated_function(self):
+        return 5
+
+    @staticmethod
+    @clickable
+    def _decorated_static_function():
+        return 5
+
+    def test_clickable_as_decorator(self):
+        with self.subTest('normal'):
+            self.assertEqual(self._decorated_function(), 5)
+            self.assertEqual(self._decorated_function(None), 5)
+        with self.subTest('staticmethod'):
+            self.assertEqual(self._decorated_function(), 5)
+            self.assertEqual(self._decorated_function(None), 5)
+
+    def test_clickable(self):
+        def dummy():
+            return 10
+
+        function = clickable(dummy)
+        self.assertEqual(function(), 10)
+        self.assertEqual(function(None), 10)

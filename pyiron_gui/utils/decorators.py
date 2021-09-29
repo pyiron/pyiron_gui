@@ -2,11 +2,12 @@
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 import functools
+import inspect
 import ipywidgets as widgets
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
-    "Copyright 2020, Max-Planck-Institut für Eisenforschung GmbH - "
+    "Copyright 2021, Max-Planck-Institut für Eisenforschung GmbH - "
     "Computational Materials Design (CM) Department"
 )
 __version__ = "0.1"
@@ -64,6 +65,29 @@ class _BusyCheck:
 
     def __call__(self):
         return self._decorator_function
+
+
+def clickable(function):
+    """A decorator for a function to be called by itself or via a widgets.Button().on_click event.
+
+    This decorator extends the signature of the function with one or no positional argument by one
+    additional positional argument (the button) which is discarded."""
+    signature = inspect.getfullargspec(function)
+    if len(signature.args) > 1:
+        raise ValueError("Only functions with up to one positional argument are supported.")
+    if not(signature.varkw is None and signature.varargs is None and signature.defaults is None):
+        raise ValueError("Function not supported, defines positional argument defaults or has *args or **kwargs.")
+
+    if len(signature.args) == 1:
+        @functools.wraps(function)
+        def decorated(self, button=None):
+            return function(self)
+    else:
+        @functools.wraps(function)
+        def decorated(button=None):
+            return function()
+
+    return decorated
 
 
 busy_check = _BusyCheck()
