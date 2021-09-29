@@ -21,7 +21,7 @@ from pyiron_gui.utils.busy_check import busy_check
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
-    "Copyright 2020, Max-Planck-Institut für Eisenforschung GmbH - "
+    "Copyright 2021, Max-Planck-Institut für Eisenforschung GmbH - "
     "Computational Materials Design (CM) Department"
 )
 __version__ = "0.1"
@@ -43,7 +43,7 @@ class DisplayOutputGUI:
         self.refresh()
 
     def refresh(self):
-        self.box.children = [self.output]
+        self.box.children = (self.output,)
 
     def __enter__(self):
         """Use context manager on the widgets.Output widget"""
@@ -73,9 +73,9 @@ class DisplayOutputGUI:
 
     def _display(self, default_output):
         if isinstance(self._display_obj, widgets.DOMWidget):
-            self.box.children = tuple([self._display_obj])
+            self.box.children = (self._display_obj,)
         elif isinstance(self._display_obj, ObjectWidget):
-            self.box.children = tuple([self._display_obj.gui])
+            self.box.children = (self._display_obj.gui,)
         else:
             with self.output:
                 if self._display_obj is None and default_output is None:
@@ -338,12 +338,12 @@ class HasGroupsBrowser:
         if body_box is None:
             body_box = self._body_box
         if self._fix_position:
-            body_box.children = tuple([WrapingHBox(self._gen_group_buttons()),
-                                       WrapingHBox(self._gen_node_buttons())])
+            body_box.children = ([WrapingHBox(self._gen_group_buttons()),
+                                  WrapingHBox(self._gen_node_buttons())])
         else:
-            body_box.children = tuple([widgets.HBox(self._gen_control_buttons()),
-                                       WrapingHBox(self._gen_group_buttons()),
-                                       WrapingHBox(self._gen_node_buttons())])
+            body_box.children = ([widgets.HBox(self._gen_control_buttons()),
+                                 WrapingHBox(self._gen_group_buttons()),
+                                 WrapingHBox(self._gen_node_buttons())])
 
     def _gen_box_children(self):
         self._update_body_box()
@@ -432,8 +432,8 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
     def _update_body_box(self, body_box=None):
         if body_box is None:
             body_box = self._body_box
-        body_box.children = tuple([WrapingHBox(self._gen_group_buttons()),
-                                   WrapingHBox(self._gen_node_buttons())])
+        body_box.children = ([WrapingHBox(self._gen_group_buttons()),
+                              WrapingHBox(self._gen_node_buttons())])
 
     def _gen_box_children(self):
         box_children = super()._gen_box_children()
