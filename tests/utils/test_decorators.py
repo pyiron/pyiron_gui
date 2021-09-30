@@ -81,3 +81,50 @@ class TestClickable(unittest.TestCase):
         function = clickable(dummy)
         self.assertEqual(function(), 10)
         self.assertEqual(function(None), 10)
+
+    def test_clickable_2_args(self):
+        def func_with_2_args(a, b):
+            return [a, b]
+
+        self.assertRaises(ValueError, clickable, func_with_2_args)
+
+    def test_clickable_default_args(self):
+        def func_with_default_args(a, b=5):
+            return [a, b]
+
+        self.assertRaises(ValueError, clickable, func_with_default_args)
+
+    def test_clickable_undefined_number_of_args(self):
+        def func_with_undefined_number_of_args(*args):
+            pass
+
+        self.assertRaises(ValueError, clickable, func_with_undefined_number_of_args)
+
+    def test_clickable_undefined_number_of_kwargs(self):
+        def func_with_undefined_number_of_kwargs(**kwargs):
+            pass
+
+        self.assertRaises(ValueError, clickable, func_with_undefined_number_of_kwargs)
+
+    def test_clickable_func_with_arg_and_kwargs(self):
+        def func_with_arg_and_kwargs(a, *, b=5):
+            return [a, b]
+
+        function = clickable(func_with_arg_and_kwargs)
+        self.assertEqual(function(2), [2, 5], msg='Normal behavior retained.')
+        self.assertEqual(function(2, None), [2, 5], msg='Swallow provided extra argument.')
+        self.assertEqual(function(2, b=3), [2, 3], msg='Normal behavior with keyword argument retained.')
+        self.assertEqual(function(2, None, b=3), [2, 3], msg='Swallow provided extra argument with followed keyword '
+                                                             'argument.')
+
+    def test_clickable_func_with_kwargs(self):
+        def func_with_kwargs(*, a=1, b=5):
+            return [a, b]
+
+        function = clickable(func_with_kwargs)
+        self.assertEqual(function(), [1, 5], msg='Normal behavior without arguments.')
+        self.assertEqual(function(b=3), [1, 3], msg='Normal behavior with kw-argument.')
+        self.assertEqual(function(b=3, a=5), [5, 3], msg='Normal behavior with all kw-arguments.')
+        self.assertEqual(function(None), [1, 5], msg='Swallow extra argument - no kw-argument.')
+        self.assertEqual(function(None, b=3), [1, 3], msg='Swallow extra argument - one kw-argument.')
+        self.assertEqual(function(None, b=3, a=5), [5, 3], msg='Swallow extra argument - all kw-argument.')
