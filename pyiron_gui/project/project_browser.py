@@ -10,6 +10,7 @@ import nbformat
 import numpy as np
 import pandas
 from IPython.core.display import display, HTML
+from traitlets import TraitError
 
 from pyiron_base import Project as BaseProject
 from pyiron_base.interfaces.has_groups import HasGroups
@@ -131,6 +132,50 @@ class DisplayOutputGUI:
             return obj
 
 
+class ColorScheme:
+    def __init__(self, color_dict=None):
+        self._color_traitlet = widgets.Color(None, allow_none=False)
+        self._color_dict = {}
+        if color_dict is not None:
+            self.add_colors(color_dict)
+
+    def __getitem__(self, item):
+        if item in self._color_dict:
+            return self._color_dict[item]
+        else:
+            raise KeyError(item)
+
+    def __setitem__(self, key, value):
+        if key in self._color_dict:
+            self._color_dict[key] = self._validate_color(value)
+        else:
+            raise ValueError(f"Unknown key '{key}'; expected one of {list(self._color_dict.keys())}")
+
+    def add_colors(self, color_dict):
+        for key, value in color_dict.items():
+            if isinstance(key, str) and key.isidentifier():
+                self._color_dict[key] = self._validate_color(value)
+            else:
+                raise ValueError(f"No valid key '{key}'")
+
+    def _validate_color(self, color):
+        try:
+            self._color_traitlet.validate(None, color)
+        except TraitError as e:
+            raise ValueError('Unknown color definition') from e
+        else:
+            return color
+
+    def keys(self):
+        return self._color_dict.keys()
+
+    def values(self):
+        return self._color_dict.values()
+
+    def items(self):
+        return self._color_dict.items()
+
+
 class HasGroupsBrowser(HasGroups):
     """Browser for a HasGroups subclass.
 
@@ -177,12 +222,12 @@ class HasGroupsBrowser(HasGroups):
                                            align_items="center",
                                            justify_content='flex-start')
         self._control_layout = self._item_layout
-        self._color = {
+        self._color = ColorScheme({
             "control": "#FF0000",
             "group": '#9999FF',
             'file_chosen': '#FFBBBB',
             'file': '#DDDDDD',
-        }
+        })
 
     @property
     def data(self):
@@ -387,8 +432,7 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
     def __init__(self, project, box=None):
         self._pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
         super().__init__(project=project, box=box)
-        self._color['path'] = '#DDDDAA'
-        self._color['home'] = '#999999'
+        self._color.add_colors({'path': '#DDDDAA', 'home': '#999999'})
         self._path_list = ['/']
 
     @property
@@ -544,8 +588,7 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
                                            justify_content='flex-start')
         self._show_files = show_files
         self._initial_project_path = self.path
-        self._color['path'] = '#DDDDAA'
-        self._color['home'] = '#999999'
+        self._color.add_colors({'path': '#DDDDAA', 'home': '#999999'})
 
         self._fix_position = fix_path
         self._hide_path = True

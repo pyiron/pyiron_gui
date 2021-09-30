@@ -13,7 +13,7 @@ import numpy as np
 from pyiron_base._tests import TestWithProject
 from pyiron_base import DataContainer, Project
 from pyiron_gui import activate_gui
-from pyiron_gui.project.project_browser import (ProjectBrowser, HasGroupsBrowser,
+from pyiron_gui.project.project_browser import (ProjectBrowser, HasGroupsBrowser, ColorScheme,
                                                 HasGroupsBrowserWithHistoryPath, HasGroupBrowserWithOutput)
 from pyiron_gui.wrapper.wrapper import PyironWrapper
 from tests.toy_job_run import ToyJob
@@ -62,6 +62,59 @@ class TestActivateGUI(TestWithProject):
                               msg='The browser attribute should return a ProjectBrowser')
 
 
+class TestColorScheme(unittest.TestCase):
+    valid_color_definitions = ('blue', '#060482', '#A80')
+
+    def setUp(self):
+        self.color_dict = {'some': 'red', 'color': 'blue', 'definitions': '#FF0000'}
+        self.color_scheme = ColorScheme(self.color_dict)
+
+    def test___init__(self):
+        with self.subTest('setUp'):
+            self.assertEqual(self.color_scheme._color_dict, {'some': 'red', 'color': 'blue', 'definitions': '#FF0000'})
+        with self.subTest('empty'):
+            color_scheme = ColorScheme()
+            self.assertEqual(color_scheme._color_dict, {})
+        with self.subTest('Not a color'):
+            self.assertRaises(ValueError, ColorScheme, {'a': 'a'})
+        with self.subTest('Not an identifier'):
+            self.assertRaises(ValueError, ColorScheme, {'1a': 'red'})
+
+    def test___getitem__(self):
+        self.assertEqual(self.color_scheme['some'], 'red')
+        self.assertEqual(self.color_scheme['color'], 'blue')
+        self.assertEqual(self.color_scheme['definitions'], '#FF0000')
+        with self.assertRaises(KeyError):
+            _ = self.color_scheme['NoSuchKey']
+
+    def test___setitem__(self):
+        self.color_scheme['some'] = 'black'
+        self.assertEqual(self.color_scheme._color_dict, {'some': 'black', 'color': 'blue', 'definitions': '#FF0000'})
+
+        with self.assertRaises(ValueError):
+            self.color_scheme['some'] = 'NotAColor'
+
+        with self.assertRaises(ValueError):
+            self.color_scheme['NotAKey'] = 'blue'
+
+    def test_add_colors(self):
+        self.color_scheme.add_colors({'nice': 'yellow'})
+        self.assertEqual(self.color_scheme._color_dict, {'some': 'red', 'color': 'blue', 'definitions': '#FF0000',
+                                                         'nice': 'yellow'})
+
+    def test_values(self):
+        self.assertEqual(list(self.color_scheme.values()), list(self.color_dict.values()))
+
+    def test_keys(self):
+        self.assertEqual(list(self.color_scheme.keys()), list(self.color_dict.keys()))
+
+    def test_items(self):
+        color_dict = {}
+        for key, value in self.color_scheme.items():
+            color_dict[key] = value
+        self.assertEqual(color_dict, self.color_dict)
+
+
 class TestHasGroupsBrowser(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -71,8 +124,11 @@ class TestHasGroupsBrowser(unittest.TestCase):
         self.browser = HasGroupsBrowser(self.data_container)
 
     def test_color(self):
-        self.assertEqual(self.browser.color, {"control": "#FF0000", "group": '#9999FF', 'file_chosen': '#FFBBBB',
-                                              'file': '#DDDDDD'})
+        self.assertIsInstance(self.browser.color, ColorScheme)
+        self.assertEqual(self.browser.color["control"], "#FF0000")
+        self.assertEqual(self.browser.color["group"], '#9999FF')
+        self.assertEqual(self.browser.color['file_chosen'], '#FFBBBB')
+        self.assertEqual(self.browser.color['file'], '#DDDDDD')
 
     def test___init__(self):
         browser = self.browser
