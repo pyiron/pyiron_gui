@@ -80,12 +80,12 @@ def clickable(function):
 
     if len(signature.args) == 1:
         @functools.wraps(function)
-        def decorated(self, button=None):
-            return function(self)
+        def decorated(self, button=None, **kwargs):
+            return function(self, **kwargs)
     else:
         @functools.wraps(function)
-        def decorated(button=None):
-            return function()
+        def decorated(button=None, **kwargs):
+            return function(**kwargs)
 
     return decorated
 
