@@ -17,7 +17,7 @@ from pyiron_base.generic.filedata import FileData
 from pyiron_gui.widgets.widgets import WrapingHBox
 from pyiron_gui.wrapper.widgets import ObjectWidget, NumpyWidget
 from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper
-from pyiron_gui.utils.busy_check import busy_check
+from pyiron_gui.utils.decorators import busy_check, clickable
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
@@ -256,11 +256,13 @@ class HasGroupsBrowser(HasGroups):
         self._update_groups_and_nodes()
         self.refresh()
 
-    def _go_back(self, _=None):
+    @clickable
+    def _go_back(self):
         self._history_idx -= 1
         self._load_history()
 
-    def _go_forward(self, _=None):
+    @clickable
+    def _go_forward(self):
         self._history_idx += 1
         self._load_history()
 
@@ -655,7 +657,8 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         optionbox.children = tuple(children)
 
     @busy_check()
-    def _set_pathbox_path(self, _=None):
+    @clickable
+    def _set_pathbox_path(self):
         if self.fix_path:
             return
         if len(self.path_string_box.value) == 0:
@@ -666,7 +669,8 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         self._update_project(path)
 
     @busy_check()
-    def _reset_data(self, _=None):
+    @clickable
+    def _reset_data(self):
         self._clickedFiles = []
         self._data = None
         self._update_body_box(self._body_box)
