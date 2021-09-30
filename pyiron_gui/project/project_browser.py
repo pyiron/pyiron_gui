@@ -132,6 +132,22 @@ class DisplayOutputGUI:
 
 
 class HasGroupsBrowser(HasGroups):
+    """Browser for a HasGroups subclass.
+
+    Implements :class:`.HasGroups`.  Groups and nodes are the obtained from the browsed HasGroup-object
+
+    Args:
+        project: A :class:`.HasGroups` subclass
+        box(widget/None): The ipywidgets.Box in which the Browser is displayed. A new VBox is used if None.
+
+    Attributes:
+        project: The currently displayed :class:`.HasGroups` subclass.
+        data: The object representing the currently clicked node.
+
+    Methods:
+        gui: Returns the Box in which the Browser is displayed
+        refresh: Refresh all widgets.
+    """
     def __init__(self, project, box=None):
         if box is None or box == 'VBox':
             self._box = widgets.VBox()
@@ -167,8 +183,6 @@ class HasGroupsBrowser(HasGroups):
             'file_chosen': '#FFBBBB',
             'file': '#DDDDDD',
         }
-
-        self._update_groups_and_nodes()
 
     @property
     def data(self):
@@ -221,9 +235,6 @@ class HasGroupsBrowser(HasGroups):
                 return [file for file in self.project.list_files() if not file.endswith(tuple(self._file_ext_filter))]
         return []
 
-    def _update_groups_and_nodes(self):
-        pass
-
     @property
     def project(self):
         return self._project
@@ -238,7 +249,6 @@ class HasGroupsBrowser(HasGroups):
         self._history_idx += 1
         self._history = self._history[:self._history_idx]
         self._history.append(self.project)
-        self._update_groups_and_nodes()
         self.refresh()
 
     @property
@@ -253,7 +263,6 @@ class HasGroupsBrowser(HasGroups):
         if hist_idx is not None:
             self._history_idx = hist_idx
         self._project = self._history[self._history_idx]
-        self._update_groups_and_nodes()
         self.refresh()
 
     @clickable
@@ -370,6 +379,11 @@ class HasGroupsBrowser(HasGroups):
 
 
 class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
+    """Extends the :class:.HasGroupsBrowser with a path derived from the history.
+
+    Attributes: (only additional ones listed)
+        path_list(list): list of clicked groups to get to the current project.
+    """
     def __init__(self, project, box=None):
         self._pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
         super().__init__(project=project, box=box)
@@ -392,7 +406,6 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
         self._history = self._history[:self._history_idx]
         self._path_list = self._path_list[:self._history_idx]
         self._history.append(self.project)
-        self._update_groups_and_nodes()
         self.refresh()
 
     def _update_project(self, group_name):
@@ -448,6 +461,8 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
 
 
 class HasGroupBrowserWithOutput(HasGroupsBrowser):
+    """Extends the :class:.HasGroupsBrowser with an output window to display the currently clicked node."""
+
     def __init__(self, project, box=None):
         self._output = DisplayOutputGUI(layout=widgets.Layout(width='50%', height='100%'))
         super().__init__(project=project, box=box)
@@ -462,7 +477,6 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
         if isinstance(self.project, BaseWrapper):
             self._output.display(self.project)
 
-        self._update_groups_and_nodes()
         self._update_body_box(self._body_box)
         body = widgets.HBox([self._body_box, self._output.box],
                             layout=widgets.Layout(
@@ -792,4 +806,3 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         if body_box is None:
             body_box = self._body_box
         body_box.children = tuple(self._gen_group_buttons() + self._gen_node_buttons())
-
