@@ -14,7 +14,8 @@ from pyiron_base._tests import TestWithProject
 from pyiron_base import DataContainer, Project
 from pyiron_gui import activate_gui
 from pyiron_gui.project.project_browser import (ProjectBrowser, HasGroupsBrowser, ColorScheme,
-                                                HasGroupsBrowserWithHistoryPath, HasGroupBrowserWithOutput)
+                                                HasGroupsBrowserWithHistoryPath, HasGroupBrowserWithOutput,
+                                                DataContainerGUI)
 from pyiron_gui.wrapper.wrapper import PyironWrapper
 from tests.toy_job_run import ToyJob
 
@@ -548,6 +549,55 @@ class TestProjectBrowser(TestWithProject):
                 self.assertTrue(0 <= int(color[1:3], base=16) <= 255)
                 self.assertTrue(0 <= int(color[3:5], base=16) <= 255)
                 self.assertTrue(0 <= int(color[5:7], base=16) <= 255)
+
+
+class TestDataContainerGui(TestHasGroupsBrowserWithHistoryPath):
+    """The DataContainerGUI should be able to pass all tests on the BrowserWithHistoryPath."""
+    def setUp(self):
+        self.browser = DataContainerGUI(project=self.data_container)
+
+    def test__on_click_file(self):
+        self.browser._on_click_group(widgets.Button(description='B'))
+        self.browser._on_click_group(widgets.Button(description='B1'))
+        browser = self.browser
+        with self.subTest('init'):
+            self.assertEqual(browser._clicked_nodes, [])
+        with self.subTest("select"):
+            browser._select_node('a')
+            browser.refresh()
+            self.assertEqual(browser._clicked_nodes, ['a'])
+            self.assertEqual(browser.data, 1)
+        with self.subTest('de-select'):
+            browser._select_node('a')
+            self.assertIsNone(browser.data, msg=f"Expected browser.data to be None, but got {browser.data}")
+        with self.subTest("re-select"):
+            browser._select_node('a')
+            browser.refresh()
+            self.assertEqual(browser._clicked_nodes, ['a'])
+            self.assertEqual(browser.data, 1)
+        with self.subTest("invalid node"):
+            browser._select_node('NotAFileName.dat')
+            self.assertIsNone(browser.data, msg=f"Expected browser.data to be None, but got {browser.data}")
+
+    def test_data(self):
+        self.browser._on_click_group(widgets.Button(description='B'))
+        self.browser._on_click_group(widgets.Button(description='B1'))
+        with self.subTest('get_data'):
+            self.browser._select_node('a')
+            self.browser.refresh()
+            self.assertEqual(self.browser._clicked_nodes, ['a'])
+            self.assertEqual(self.browser.data, 1)
+        with self.subTest('set_data'):
+            self.browser.data = 2
+            self.assertEqual(self.browser._clicked_nodes, ['a'])
+            self.assertEqual(self.browser.data, 2)
+        with self.subTest('set_data no node selected'):
+            self.browser._select_node('a')
+            self.assertEqual(self.browser._clicked_nodes, [])
+            self.assertEqual(self.browser.data, None)
+            with self.assertRaises(ValueError):
+                self.browser.data = 3
+            self.assertEqual(self.browser.data, None)
 
 
 if __name__ == '__main__':
