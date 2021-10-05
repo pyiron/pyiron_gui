@@ -7,7 +7,7 @@ from pyiron_gui.project.project_browser import ProjectBrowser
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
-    "Copyright 2020, Max-Planck-Institut für Eisenforschung GmbH - "
+    "Copyright 2021, Max-Planck-Institut für Eisenforschung GmbH - "
     "Computational Materials Design (CM) Department"
 )
 __version__ = "0.1"

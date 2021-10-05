@@ -1,7 +1,22 @@
+# coding: utf-8
+# Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
+# Distributed under the terms of "New BSD License", see the LICENSE file.
+
 import ipywidgets as widgets
 import numpy as np
 from IPython.core.display import display
 from matplotlib import pyplot as plt
+
+__author__ = "Niklas Siemer"
+__copyright__ = (
+    "Copyright 2021, Max-Planck-Institut für Eisenforschung GmbH - "
+    "Computational Materials Design (CM) Department"
+)
+__version__ = "0.1"
+__maintainer__ = "Niklas Siemer"
+__email__ = "siemer@mpie.de"
+__status__ = "development"
+__date__ = "Sep 30, 2021"
 
 
 class ObjectWidget:
