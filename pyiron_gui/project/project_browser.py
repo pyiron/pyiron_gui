@@ -10,6 +10,7 @@ import nbformat
 import numpy as np
 import pandas
 from IPython.core.display import display, HTML
+from traitlets import TraitError
 
 from pyiron_base import Project as BaseProject
 from pyiron_base.interfaces.has_groups import HasGroups
@@ -17,11 +18,11 @@ from pyiron_base.generic.filedata import FileData
 from pyiron_gui.widgets.widgets import WrapingHBox
 from pyiron_gui.wrapper.widgets import ObjectWidget, NumpyWidget
 from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper
-from pyiron_gui.utils.busy_check import busy_check
+from pyiron_gui.utils.decorators import busy_check, clickable
 
 __author__ = "Niklas Siemer"
 __copyright__ = (
-    "Copyright 2020, Max-Planck-Institut für Eisenforschung GmbH - "
+    "Copyright 2021, Max-Planck-Institut für Eisenforschung GmbH - "
     "Computational Materials Design (CM) Department"
 )
 __version__ = "0.1"
@@ -43,7 +44,7 @@ class DisplayOutputGUI:
         self.refresh()
 
     def refresh(self):
-        self.box.children = [self.output]
+        self.box.children = (self.output,)
 
     def __enter__(self):
         """Use context manager on the widgets.Output widget"""
@@ -73,9 +74,9 @@ class DisplayOutputGUI:
 
     def _display(self, default_output):
         if isinstance(self._display_obj, widgets.DOMWidget):
-            self.box.children = tuple([self._display_obj])
+            self.box.children = (self._display_obj,)
         elif isinstance(self._display_obj, ObjectWidget):
-            self.box.children = tuple([self._display_obj.gui])
+            self.box.children = (self._display_obj.gui,)
         else:
             with self.output:
                 if self._display_obj is None and default_output is None:
@@ -131,7 +132,67 @@ class DisplayOutputGUI:
             return obj
 
 
-class HasGroupsBrowser:
+class ColorScheme:
+    def __init__(self, color_dict=None):
+        self._color_traitlet = widgets.Color(None, allow_none=False)
+        self._color_dict = {}
+        if color_dict is not None:
+            self.add_colors(color_dict)
+
+    def __getitem__(self, item):
+        if item in self._color_dict:
+            return self._color_dict[item]
+        else:
+            raise KeyError(item)
+
+    def __setitem__(self, key, value):
+        if key in self._color_dict:
+            self._color_dict[key] = self._validate_color(value)
+        else:
+            raise ValueError(f"Unknown key '{key}'; expected one of {list(self._color_dict.keys())}")
+
+    def add_colors(self, color_dict):
+        for key, value in color_dict.items():
+            if isinstance(key, str) and key.isidentifier():
+                self._color_dict[key] = self._validate_color(value)
+            else:
+                raise ValueError(f"No valid key '{key}'")
+
+    def _validate_color(self, color):
+        try:
+            self._color_traitlet.validate(None, color)
+        except TraitError as e:
+            raise ValueError('Unknown color definition') from e
+        else:
+            return color
+
+    def keys(self):
+        return self._color_dict.keys()
+
+    def values(self):
+        return self._color_dict.values()
+
+    def items(self):
+        return self._color_dict.items()
+
+
+class HasGroupsBrowser(HasGroups):
+    """Browser for a HasGroups subclass.
+
+    Implements :class:`.HasGroups`.  Groups and nodes are the obtained from the browsed HasGroup-object
+
+    Args:
+        project: A :class:`.HasGroups` subclass
+        box(widget/None): The ipywidgets.Box in which the Browser is displayed. A new VBox is used if None.
+
+    Attributes:
+        project: The currently displayed :class:`.HasGroups` subclass.
+        data: The object representing the currently clicked node.
+
+    Methods:
+        gui: Returns the Box in which the Browser is displayed
+        refresh: Refresh all widgets.
+    """
     def __init__(self, project, box=None):
         if box is None or box == 'VBox':
             self._box = widgets.VBox()
@@ -147,9 +208,6 @@ class HasGroupsBrowser:
         self._data = None
         self._history = [project]
         self._history_idx = 0
-        self._files = None
-        self._nodes = None
-        self._groups = None
         self._clicked_nodes = []
 
         self._file_ext_filter = ['.h5', '.db']
@@ -164,14 +222,12 @@ class HasGroupsBrowser:
                                            align_items="center",
                                            justify_content='flex-start')
         self._control_layout = self._item_layout
-        self._color = {
+        self._color = ColorScheme({
             "control": "#FF0000",
             "group": '#9999FF',
             'file_chosen': '#FFBBBB',
             'file': '#DDDDDD',
-        }
-
-        self._update_groups_and_nodes()
+        })
 
     @property
     def data(self):
@@ -192,25 +248,37 @@ class HasGroupsBrowser:
         """Copy of the browser using a new Vbox."""
         return self.__copy__()
 
+    def __getitem__(self, item):
+        return self.project[item]
+
     @property
     def groups(self):
-        return self._groups
+        return self.list_groups()
+
+    def _list_groups(self):
+        return self.project.list_groups()
 
     @property
     def nodes(self):
+        return self.list_nodes()
+
+    def _list_nodes(self):
         if self._show_all:
-            return self._nodes
+            return self.project.list_nodes()
         else:
-            return [node for node in self._nodes if node not in self._node_filter]
+            return [node for node in self.project.list_nodes() if node not in self._node_filter]
 
     @property
     def files(self):
-        if self._show_all:
-            return self._files
-        elif self._node_as_group and self._show_files:
-            return [file for file in self._files if not file.endswith(tuple(self._file_ext_filter))]
-        else:
-            return []
+        return self._list_files()
+
+    def _list_files(self):
+        if hasattr(self.project, 'list_files'):
+            if self._show_all:
+                return self.project.list_files()
+            elif self._node_as_group and self._show_files:
+                return [file for file in self.project.list_files() if not file.endswith(tuple(self._file_ext_filter))]
+        return []
 
     @property
     def project(self):
@@ -226,7 +294,6 @@ class HasGroupsBrowser:
         self._history_idx += 1
         self._history = self._history[:self._history_idx]
         self._history.append(self.project)
-        self._update_groups_and_nodes()
         self.refresh()
 
     @property
@@ -241,14 +308,15 @@ class HasGroupsBrowser:
         if hist_idx is not None:
             self._history_idx = hist_idx
         self._project = self._history[self._history_idx]
-        self._update_groups_and_nodes()
         self.refresh()
 
-    def _go_back(self, _=None):
+    @clickable
+    def _go_back(self):
         self._history_idx -= 1
         self._load_history()
 
-    def _go_forward(self, _=None):
+    @clickable
+    def _go_forward(self):
         self._history_idx += 1
         self._load_history()
 
@@ -271,15 +339,6 @@ class HasGroupsBrowser:
         if self._history_idx == len(self._history) - 1:
             forward_button.disabled = True
         return [back_button, forward_button]
-
-    def _update_groups_and_nodes(self):
-        self._clicked_nodes = []
-        self._nodes = self.project.list_nodes()
-        self._groups = self.project.list_groups()
-        if hasattr(self.project, 'list_files'):
-            self._files = self.project.list_files()
-        else:
-            self._files = []
 
     def _update_project(self, group_name):
         self.project = self.project[group_name]
@@ -339,12 +398,12 @@ class HasGroupsBrowser:
         if body_box is None:
             body_box = self._body_box
         if self._fix_position:
-            body_box.children = tuple([WrapingHBox(self._gen_group_buttons()),
-                                       WrapingHBox(self._gen_node_buttons())])
+            body_box.children = ([WrapingHBox(self._gen_group_buttons()),
+                                  WrapingHBox(self._gen_node_buttons())])
         else:
-            body_box.children = tuple([widgets.HBox(self._gen_control_buttons()),
-                                       WrapingHBox(self._gen_group_buttons()),
-                                       WrapingHBox(self._gen_node_buttons())])
+            body_box.children = ([widgets.HBox(self._gen_control_buttons()),
+                                 WrapingHBox(self._gen_group_buttons()),
+                                 WrapingHBox(self._gen_node_buttons())])
 
     def _gen_box_children(self):
         self._update_body_box()
@@ -365,11 +424,15 @@ class HasGroupsBrowser:
 
 
 class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
+    """Extends the :class:.HasGroupsBrowser with a path derived from the history.
+
+    Attributes: (only additional ones listed)
+        path_list(list): list of clicked groups to get to the current project.
+    """
     def __init__(self, project, box=None):
         self._pathbox = widgets.HBox(layout=widgets.Layout(width='100%', justify_content='flex-start'))
         super().__init__(project=project, box=box)
-        self._color['path'] = '#DDDDAA'
-        self._color['home'] = '#999999'
+        self._color.add_colors({'path': '#DDDDAA', 'home': '#999999'})
         self._path_list = ['/']
 
     @property
@@ -387,7 +450,6 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
         self._history = self._history[:self._history_idx]
         self._path_list = self._path_list[:self._history_idx]
         self._history.append(self.project)
-        self._update_groups_and_nodes()
         self.refresh()
 
     def _update_project(self, group_name):
@@ -433,8 +495,8 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
     def _update_body_box(self, body_box=None):
         if body_box is None:
             body_box = self._body_box
-        body_box.children = tuple([WrapingHBox(self._gen_group_buttons()),
-                                   WrapingHBox(self._gen_node_buttons())])
+        body_box.children = ([WrapingHBox(self._gen_group_buttons()),
+                              WrapingHBox(self._gen_node_buttons())])
 
     def _gen_box_children(self):
         box_children = super()._gen_box_children()
@@ -443,6 +505,8 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
 
 
 class HasGroupBrowserWithOutput(HasGroupsBrowser):
+    """Extends the :class:.HasGroupsBrowser with an output window to display the currently clicked node."""
+
     def __init__(self, project, box=None):
         self._output = DisplayOutputGUI(layout=widgets.Layout(width='50%', height='100%'))
         super().__init__(project=project, box=box)
@@ -457,7 +521,6 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
         if isinstance(self.project, BaseWrapper):
             self._output.display(self.project)
 
-        self._update_groups_and_nodes()
         self._update_body_box(self._body_box)
         body = widgets.HBox([self._body_box, self._output.box],
                             layout=widgets.Layout(
@@ -525,8 +588,7 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
                                            justify_content='flex-start')
         self._show_files = show_files
         self._initial_project_path = self.path
-        self._color['path'] = '#DDDDAA'
-        self._color['home'] = '#999999'
+        self._color.add_colors({'path': '#DDDDAA', 'home': '#999999'})
 
         self._fix_position = fix_path
         self._hide_path = True
@@ -652,7 +714,8 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         optionbox.children = tuple(children)
 
     @busy_check()
-    def _set_pathbox_path(self, _=None):
+    @clickable
+    def _set_pathbox_path(self):
         if self.fix_path:
             return
         if len(self.path_string_box.value) == 0:
@@ -663,7 +726,8 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         self._update_project(path)
 
     @busy_check()
-    def _reset_data(self, _=None):
+    @clickable
+    def _reset_data(self):
         self._clickedFiles = []
         self._data = None
         self._update_body_box(self._body_box)

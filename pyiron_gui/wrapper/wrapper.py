@@ -1,3 +1,7 @@
+# coding: utf-8
+# Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
+# Distributed under the terms of "New BSD License", see the LICENSE file.
+
 import os
 import posixpath
 from functools import singledispatch
@@ -6,6 +10,17 @@ from pyiron_atomistics import Atoms
 from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
 from pyiron_base.interfaces.has_groups import HasGroups
 from pyiron_gui.wrapper.widgets import ObjectWidget, AtomsWidget, MurnaghanWidget
+
+__author__ = "Niklas Siemer"
+__copyright__ = (
+    "Copyright 2021, Max-Planck-Institut für Eisenforschung GmbH - "
+    "Computational Materials Design (CM) Department"
+)
+__version__ = "0.1"
+__maintainer__ = "Niklas Siemer"
+__email__ = "siemer@mpie.de"
+__status__ = "development"
+__date__ = "Sep 30, 2021"
 
 
 @singledispatch
