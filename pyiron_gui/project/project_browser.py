@@ -66,6 +66,8 @@ class DisplayOutputGUI:
     def display(self, obj, default_output=None):
         if isinstance(obj, BaseWrapper):
             self.display(obj.gui, default_output=default_output)
+        elif isinstance(obj, tuple(PyironWrapper.registry.keys())[1:]):
+            self.display(PyironWrapper(obj, project=None))
         elif isinstance(obj, np.ndarray):
             self.display(NumpyWidget(obj), default_output=default_output)
         else:
@@ -538,6 +540,7 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
                 pass
             else:
                 new_project = new_project2
+                self._output.display(new_project)
         self.project = new_project
 
     def _update_project(self, group_name):
@@ -742,24 +745,17 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
             return None
 
     def _update_project_worker(self, rel_path):
+        old_project = self.project
         try:
-            new_project = self.project[rel_path]
-            # Check if the new_project implements list_nodes()
-            if 'TYPE' in new_project.list_nodes():
-                try:
-                    new_project2 = PyironWrapper(new_project.to_object(), self.project, rel_path)
-                except ValueError:  # to_object() (may?) fail with an ValueError for GenericParameters
-                    pass
-                else:
-                    new_project = new_project2
+            super(ProjectBrowser, self)._update_project_worker(rel_path)
         except (ValueError, AttributeError):
             self.path_string_box = self.path_string_box.__class__(description="(rel) Path", value='')
             with self._output:
                 print("No valid path")
             return
         else:
-            if new_project is not None:
-                self.project = new_project
+            if self.project is None:
+                self.project = old_project
 
     def _update_project(self, path):
         self._clear_output()
@@ -849,3 +845,19 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         if body_box is None:
             body_box = self._body_box
         body_box.children = tuple(self._gen_group_buttons() + self._gen_node_buttons())
+
+
+class DataContainerGUI(HasGroupsBrowserWithHistoryPath, HasGroupBrowserWithOutput):
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, val):
+        if len(self._clicked_nodes) > 0 and self._clicked_nodes[0] in self.project.list_nodes():
+            node = self._clicked_nodes[0]
+            self.project[node] = val
+            self._clicked_nodes = []
+            self._select_node(node)
+        else:
+            raise ValueError("No node selected.")
