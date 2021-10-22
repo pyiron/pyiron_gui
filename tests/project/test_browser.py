@@ -434,18 +434,19 @@ class TestProjectBrowser(TestWithProject):
         with self.subTest("select"):
             browser._select_node('text.txt')
             browser.refresh()
-            self.assertEqual(browser._clicked_nodes, [join(browser.path, 'text.txt')])
-            self.assertEqual(browser.data.data, ["some text"])
+            self.assertEqual(browser._clicked_nodes, ['text.txt'])
+            self.assertEqual(browser.data, ["some text"])
         with self.subTest('de-select'):
             browser._select_node('text.txt')
             self.assertIsNone(browser.data, msg=f"Expected browser.data to be None, but got {browser.data}")
         with self.subTest("re-select"):
             browser._select_node('text.txt')
             browser.refresh()
-            self.assertEqual(browser._clicked_nodes, [join(browser.path, 'text.txt')])
-            self.assertEqual(browser.data.data, ["some text"])
+            self.assertEqual(browser._clicked_nodes, ['text.txt'])
+            self.assertEqual(browser.data, ["some text"])
         with self.subTest("invalid node"):
             browser._select_node('NotAFileName.dat')
+            self.assertEqual(browser._clicked_nodes, [])
             self.assertIsNone(browser.data, msg=f"Expected browser.data to be None, but got {browser.data}")
 
     def test_data(self):
