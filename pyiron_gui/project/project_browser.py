@@ -2,6 +2,7 @@
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 import os
+import posixpath
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
@@ -292,11 +293,16 @@ class HasGroupsBrowser(HasGroups):
             raise RuntimeError('Not allowed to change the current group.')
         if not isinstance(new_project, HasGroups):
             raise TypeError
-        self._project = new_project
+        self._set_project(new_project)
         self._history_idx += 1
         self._history = self._history[:self._history_idx]
         self._history.append(self.project)
         self.refresh()
+
+    def _set_project(self, new_project):
+        self._project = new_project
+        self._data = None
+        self._clicked_nodes = []
 
     @property
     def _node_as_group(self):
@@ -309,7 +315,7 @@ class HasGroupsBrowser(HasGroups):
     def _load_history(self, hist_idx=None):
         if hist_idx is not None:
             self._history_idx = hist_idx
-        self._project = self._history[self._history_idx]
+        self._set_project(self._history[self._history_idx])
         self.refresh()
 
     @clickable
@@ -378,6 +384,7 @@ class HasGroupsBrowser(HasGroups):
             try:
                 self._data = self.project[node]
             except(KeyError, IOError, ValueError):
+                self._clicked_nodes.remove(node)
                 self._data = None
 
     def _gen_node_buttons(self, nodes=None):
@@ -772,7 +779,7 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
     def _gen_pathbox_path_list(self):
         """Internal helper function to generate a list of paths from the current path."""
         path_list = list()
-        tmppath = os.path.abspath(self.path)
+        tmppath = posixpath.abspath(self.path)
         if tmppath[-1] == '/':
             tmppath = tmppath[:-1]
         tmppath_old = tmppath + '/'
@@ -819,27 +826,6 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
             buttons.append(button)
 
         box.children = tuple(buttons)
-
-    def _select_node(self, filename):
-        filepath = os.path.join(self.path, filename)
-        self._clear_output()
-        try:
-            data = self.project[filename]
-        except(ValueError, KeyError, IOError):
-            data = None
-
-        self._output.display(data, default_output=[filename])
-
-        if filepath in self._clicked_nodes:
-            self._data = None
-            self._clicked_nodes.remove(filepath)
-        else:
-            if data is not None:
-                self._data = FileData(data=data, file=filename, metadata={"path": filepath})
-            else:
-                self._data = None
-            # self._clickedFiles.append(filepath)
-            self._clicked_nodes = [filepath]
 
     def _update_body_box(self, body_box=None):
         if body_box is None:
