@@ -54,15 +54,15 @@ class BaseWrapper(HasGroups):
 
     @property
     def project(self):
-        if hasattr(self._wrapped_object, 'project'):
+        if hasattr(self._wrapped_object, "project"):
             return self._wrapped_object.project
         return self._project
 
     @property
     def path(self):
-        if hasattr(self._wrapped_object, 'path'):
+        if hasattr(self._wrapped_object, "path"):
             return self._wrapped_object.path
-        if hasattr(self.project, 'path'):
+        if hasattr(self.project, "path"):
             return posixpath.join(self.project.path, self._rel_path)
         raise AttributeError
 
@@ -70,13 +70,15 @@ class BaseWrapper(HasGroups):
         try:
             return self._wrapped_object[item]
         except (IndexError, KeyError, TypeError):
-            rel_path = os.path.relpath(posixpath.join(self.path, item), self._project.path)
-            if rel_path == '.':
+            rel_path = os.path.relpath(
+                posixpath.join(self.path, item), self._project.path
+            )
+            if rel_path == ".":
                 return self._project
             return self._project[rel_path]
 
     def __getattr__(self, item):
-        if item in ['list_nodes', 'list_groups']:
+        if item in ["list_nodes", "list_groups"]:
             try:
                 return getattr(self._wrapped_object, item)
             except AttributeError:
@@ -106,7 +108,7 @@ class BaseWrapper(HasGroups):
 class AtomsWrapper(BaseWrapper):
     def __init__(self, pyi_obj, project, rel_path=""):
         super().__init__(pyi_obj, project, rel_path=rel_path)
-        self._name = 'structure'
+        self._name = "structure"
 
     @property
     def gui(self):
@@ -116,7 +118,7 @@ class AtomsWrapper(BaseWrapper):
 class MurnaghanWrapper(BaseWrapper):
     def __init__(self, pyi_obj, project, rel_path=""):
         super().__init__(pyi_obj, project, rel_path=rel_path)
-        self._name = 'murnaghan'
+        self._name = "murnaghan"
 
     @property
     def gui(self):

@@ -18,7 +18,7 @@ __date__ = "Sep 24, 2021"
 def WrapingHBox(*args, **kwargs):
     """Construct a Box widget with similar properties as the normal HBox but with wrapping behavior."""
     box = widgets.Box(*args, **kwargs)
-    box.layout.display = 'flex'
-    box.layout.align_items = 'stretch'
-    box.layout.flex_flow = 'row wrap'
+    box.layout.display = "flex"
+    box.layout.align_items = "stretch"
+    box.layout.flex_flow = "row wrap"
     return box
