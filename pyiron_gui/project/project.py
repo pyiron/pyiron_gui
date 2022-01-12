@@ -36,14 +36,20 @@ def activate_gui(project_instance):
         def browser(self):
             """Provides a browser to inspect the data system of the project."""
             if self._project_browser is None:
-                self._project_browser = ProjectBrowser(project=self, show_files=False, Vbox=None)
+                self._project_browser = ProjectBrowser(
+                    project=self, show_files=False, Vbox=None
+                )
             return self._project_browser
 
     if not isinstance(project_instance, BaseProject):
         raise ValueError("Only pyiron Projects support a GUI extension.")
 
     # This is the same as the copy() method on a pyiron_base Project using the class of the project_instance instead
-    new = GUIProject(path=project_instance.path, user=project_instance.user, sql_query=project_instance.sql_query)
+    new = GUIProject(
+        path=project_instance.path,
+        user=project_instance.user,
+        sql_query=project_instance.sql_query,
+    )
     new._filter = project_instance._filter
     new._inspect_mode = project_instance._inspect_mode
     return new

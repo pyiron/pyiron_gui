@@ -61,6 +61,7 @@ class _BusyCheck:
                 function(*args, **kwargs)
             finally:
                 self._busy_check(False)
+
         return decorated
 
     def __call__(self):
@@ -74,15 +75,26 @@ def clickable(function):
     additional positional argument (the button) which is discarded."""
     signature = inspect.getfullargspec(function)
     if len(signature.args) > 1:
-        raise ValueError("Only functions with up to one positional argument are supported.")
-    if not(signature.varkw is None and signature.varargs is None and signature.defaults is None):
-        raise ValueError("Function not supported, defines positional argument defaults or has *args or **kwargs.")
+        raise ValueError(
+            "Only functions with up to one positional argument are supported."
+        )
+    if not (
+        signature.varkw is None
+        and signature.varargs is None
+        and signature.defaults is None
+    ):
+        raise ValueError(
+            "Function not supported, defines positional argument defaults or has *args or **kwargs."
+        )
 
     if len(signature.args) == 1:
+
         @functools.wraps(function)
         def decorated(self, button=None, **kwargs):
             return function(self, **kwargs)
+
     else:
+
         @functools.wraps(function)
         def decorated(button=None, **kwargs):
             return function(**kwargs)
@@ -91,4 +103,3 @@ def clickable(function):
 
 
 busy_check = _BusyCheck()
-
