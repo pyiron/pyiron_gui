@@ -33,10 +33,10 @@ setup(
     packages=find_packages(exclude=["*tests*", "*docs*", "*binder*", "*conda*", "*notebooks*", "*.ci_support*"]),
     install_requires=[
         'pyiron_base==0.5.4',
-        'pyiron_atomistics==0.2.36',
+        'pyiron_atomistics==0.2.37',
         'ipywidgets==7.6.5',
         'matplotlib==3.5.1',
         'numpy==1.22.2',
-        'pandas==1.4.0',
+        'pandas==1.4.1',
     ]
 )
