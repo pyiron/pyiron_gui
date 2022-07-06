@@ -40,16 +40,6 @@ def safe_monkey_patch(cls, attr_name, func):
         setattr(cls, attr_name, func)
 
 
-def _has_groups_gui(self, box=None, refresh=False):
-    if self._has_groups_browser is None or refresh:
-        self._has_groups_browser = HasGroupsBrowser(self, box=box)
-    return self._has_groups_browser
-
-
-safe_monkey_patch(HasGroups, "_has_groups_browser", None)
-safe_monkey_patch(HasGroups, "gui", _has_groups_gui)
-
-
 def _datacontainer_gui(self, box=None, refresh=False):
     if self._datacontainer_gui is None or refresh:
         self._datacontainer_gui = DataContainerGUI(self, box=box)
@@ -70,3 +60,13 @@ def _pyiron_base_project_browser(self):
 
 safe_monkey_patch(Project, "_project_browser", None)
 safe_monkey_patch(Project, "browser", property(_pyiron_base_project_browser))
+
+
+def _has_groups_gui(self, box=None, refresh=False):
+    if self._has_groups_browser is None or refresh:
+        self._has_groups_browser = HasGroupsBrowser(self, box=box)
+    return self._has_groups_browser
+
+
+safe_monkey_patch(HasGroups, "_has_groups_browser", None)
+safe_monkey_patch(HasGroups, "gui", _has_groups_gui)
