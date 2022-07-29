@@ -51,7 +51,7 @@ def _datacontainer_gui(self, box=None, refresh=False):
     return self._datacontainer_browser
 
 
-safe_monkey_patch(DataContainer, "_datacontainer_gui", _datacontainer_gui)
+safe_monkey_patch(DataContainer, "_datacontainer_gui", None)
 safe_monkey_patch(DataContainer, "gui", _datacontainer_gui)
 
 
