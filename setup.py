@@ -38,5 +38,6 @@ setup(
         'matplotlib==3.5.3',
         'numpy==1.23.2',
         'pandas==1.4.3',
+        'nbconvert==7.0.0',
     ]
 )
