@@ -5,6 +5,7 @@ dependencies:
 - coverage
 - codacy-coverage
 - ipywidgets =8.0.1
+- nbconvert =7.0.0
 - pyiron_base =0.5.22
 - pyiron_atomistics =0.2.54
 - numpy =1.23.2
