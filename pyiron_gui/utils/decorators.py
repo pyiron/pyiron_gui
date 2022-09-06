@@ -42,7 +42,7 @@ class _BusyCheck:
 
     @property
     def _widgets(self):
-        return widgets.Widget.widgets
+        return widgets.Widget._widgets
 
     def _busy_check(self, busy=True):
         """Function to disable widget interaction while another update is ongoing."""
