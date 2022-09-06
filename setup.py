@@ -34,10 +34,10 @@ setup(
     install_requires=[
         'pyiron_base==0.5.22',
         'pyiron_atomistics==0.2.54',
-        'ipywidgets==8.0.1',
+        'ipywidgets==8.0.2',
         'matplotlib==3.5.3',
         'numpy==1.23.2',
-        'pandas==1.4.3',
+        'pandas==1.4.4',
         'nbconvert==7.0.0',
     ]
 )

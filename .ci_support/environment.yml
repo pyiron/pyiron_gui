@@ -9,5 +9,5 @@ dependencies:
 - pyiron_base =0.5.22
 - pyiron_atomistics =0.2.54
 - numpy =1.23.2
-- pandas =1.4.3
+- pandas =1.4.4
 - matplotlib-base =3.5.3
