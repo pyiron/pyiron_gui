@@ -29,7 +29,10 @@ __date__ = "July 06, 2022"
 def safe_monkey_patch(cls, attr_name, func):
     bound_method = getattr(cls, attr_name) if hasattr(cls, attr_name) else None
 
-    if bound_method is not None and (bound_method.__module__ != func.__module__ or bound_method.__name__ != func.__name__):
+    if bound_method is not None and (
+        bound_method.__module__ != func.__module__
+        or bound_method.__name__ != func.__name__
+    ):
         warnings.warn(
             f"Class {cls.__name__} already has attribute {attr_name} - Aborting monkey path of gui elements."
         )
