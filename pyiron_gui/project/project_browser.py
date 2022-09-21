@@ -14,8 +14,8 @@ from IPython.core.display import display, HTML
 from traitlets import TraitError
 
 from pyiron_base import Project as BaseProject
-from pyiron_base.interfaces.has_groups import HasGroups
-from pyiron_base.generic.filedata import FileData
+from pyiron_base import HasGroups
+from pyiron_base import FileData
 from pyiron_gui.widgets.widgets import WrapingHBox
 from pyiron_gui.wrapper.widgets import ObjectWidget, NumpyWidget
 from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper

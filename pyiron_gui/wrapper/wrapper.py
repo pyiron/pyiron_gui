@@ -8,7 +8,7 @@ from functools import singledispatch
 
 from pyiron_atomistics import Atoms
 from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
-from pyiron_base.interfaces.has_groups import HasGroups
+from pyiron_base import HasGroups
 from pyiron_gui.wrapper.widgets import ObjectWidget, AtomsWidget, MurnaghanWidget
 
 __author__ = "Niklas Siemer"
