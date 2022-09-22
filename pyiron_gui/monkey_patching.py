@@ -30,8 +30,7 @@ __date__ = "July 06, 2022"
 def _safe_monkey_patch_method(cls, method_name, func):
     method = getattr(cls, method_name) if hasattr(cls, method_name) else None
     if method is not None and (
-            method.__module__ != func.__module__
-            or method.__name__ != func.__name__
+        method.__module__ != func.__module__ or method.__name__ != func.__name__
     ):
         warnings.warn(
             f"Class {cls.__name__} already has attribute {method_name} - Aborting monkey patch of gui elements."
@@ -47,8 +46,8 @@ def _safe_monkey_patch_method(cls, method_name, func):
 def _safe_monkey_patch_property(cls, property_name, prop):
     method = getattr(cls, property_name) if hasattr(cls, property_name) else None
     if method is not None and (
-            method.fget.__module__ != prop.fget.__module__
-            or method.fget.__name__ != prop.fget.__name__
+        method.fget.__module__ != prop.fget.__module__
+        or method.fget.__name__ != prop.fget.__name__
     ):
         warnings.warn(
             f"Class {cls.__name__} already has attribute {property_name} - Aborting monkey patch of gui elements."
@@ -61,9 +60,21 @@ def _safe_monkey_patch_property(cls, property_name, prop):
         return True
 
 
-def safe_monkey_patch(cls: type, func_or_property_name: str, func_or_property, attr_name: Union[str, None] = None, attr_val=None):
-    attribute_or_bound_method = getattr(cls, func_or_property_name) if hasattr(cls, func_or_property_name) else None
-    if hasattr(cls, func_or_property_name) and type(func_or_property) != type(attribute_or_bound_method):
+def safe_monkey_patch(
+    cls: type,
+    func_or_property_name: str,
+    func_or_property,
+    attr_name: Union[str, None] = None,
+    attr_val=None,
+):
+    attribute_or_bound_method = (
+        getattr(cls, func_or_property_name)
+        if hasattr(cls, func_or_property_name)
+        else None
+    )
+    if hasattr(cls, func_or_property_name) and type(func_or_property) != type(
+        attribute_or_bound_method
+    ):
         warnings.warn(
             f"Class {cls.__name__} already has attribute {func_or_property_name} - Aborting monkey patch "
             f"of gui elements. type(attribute_or_bound_method) = {type(attribute_or_bound_method)} "
@@ -72,16 +83,22 @@ def safe_monkey_patch(cls: type, func_or_property_name: str, func_or_property, a
         return
 
     if callable(func_or_property):
-        success = _safe_monkey_patch_method(cls, func_or_property_name, func_or_property)
+        success = _safe_monkey_patch_method(
+            cls, func_or_property_name, func_or_property
+        )
         if success and attr_name is not None:
             setattr(cls, attr_name, attr_val)
     elif isinstance(func_or_property, property):
-        success = _safe_monkey_patch_property(cls, func_or_property_name, func_or_property)
+        success = _safe_monkey_patch_property(
+            cls, func_or_property_name, func_or_property
+        )
         if success and attr_name is not None:
             setattr(cls, attr_name, attr_val)
     else:
-        warnings.warn(f'{func_or_property_name} not added since provided func_or_property ({func_or_property} '
-                      f'is neither callable nor property')
+        warnings.warn(
+            f"{func_or_property_name} not added since provided func_or_property ({func_or_property} "
+            f"is neither callable nor property"
+        )
 
 
 def _datacontainer_gui(self, box=None, refresh=False):
@@ -101,7 +118,9 @@ def _pyiron_base_project_browser(self):
     return self._project_browser
 
 
-safe_monkey_patch(Project, "browser", property(_pyiron_base_project_browser), "_project_browser", None)
+safe_monkey_patch(
+    Project, "browser", property(_pyiron_base_project_browser), "_project_browser", None
+)
 
 
 def _has_groups_gui(self, box=None, refresh=False):
