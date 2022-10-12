@@ -28,7 +28,7 @@ __date__ = "July 06, 2022"
 
 
 def _safe_monkey_patch_method(cls, method_name, func):
-    method = getattr(cls, method_name) if hasattr(cls, method_name) else None
+    method = getattr(cls, method_name, None)
     if method is not None and (
         method.__module__ != func.__module__ or method.__name__ != func.__name__
     ):
@@ -44,7 +44,7 @@ def _safe_monkey_patch_method(cls, method_name, func):
 
 
 def _safe_monkey_patch_property(cls, property_name, prop):
-    method = getattr(cls, property_name) if hasattr(cls, property_name) else None
+    method = getattr(cls, property_name, None)
     if method is not None and (
         method.fget.__module__ != prop.fget.__module__
         or method.fget.__name__ != prop.fget.__name__
@@ -67,11 +67,7 @@ def safe_monkey_patch(
     attr_name: Union[str, None] = None,
     attr_val=None,
 ):
-    attribute_or_bound_method = (
-        getattr(cls, func_or_property_name)
-        if hasattr(cls, func_or_property_name)
-        else None
-    )
+    attribute_or_bound_method = getattr(cls, func_or_property_name, None)
     if hasattr(cls, func_or_property_name) and type(func_or_property) != type(
         attribute_or_bound_method
     ):
