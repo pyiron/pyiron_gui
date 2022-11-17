@@ -9,14 +9,14 @@ if [ -d "${HOME}/pyiron_gui" ]; then
     rm -r ${HOME}/binder \
     ${HOME}/.ci_support \
     ${HOME}/.github \
+    ${HOME}/notebooks \
     ${HOME}/pyiron_gui \
     ${HOME}/tests \
-    ${HOME}/notebooks \
+    ${HOME}/CODE_OF_CONDUCT.md \
     ${HOME}/LICENSE \
     ${HOME}/MANIFEST.in \
+    ${HOME}/README.rst \
     ${HOME}/setup.cfg \
     ${HOME}/setup.py \
-    ${HOME}/versioneer.py \
-    ${HOME}/README.rst \
-    ${HOME}/CODE_OF_CONDUCT.md
+    ${HOME}/versioneer.py
 fi
