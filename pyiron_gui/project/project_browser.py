@@ -234,6 +234,9 @@ class HasGroupsBrowser(HasGroups):
             justify_content="flex-start",
         )
         self._control_layout = self._item_layout
+        self._control_bar_layout = widgets.Layout(
+            height="min-content"
+        )
         self._color = ColorScheme(
             {
                 "control": "#FF0000",
@@ -614,9 +617,9 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
             show_files(bool): If True files (from project.list_files()) are displayed.
         """
         self.pathbox = widgets.HBox(
-            layout=widgets.Layout(width="100%", justify_content="flex-start")
+            layout=widgets.Layout(width="100%", min_height="30px", justify_content="flex-start")
         )
-        self.optionbox = widgets.HBox()
+        self.optionbox = widgets.HBox(layout=widgets.Layout(min_height="30px"))
         self.path_string_box = widgets.Text(
             description="(rel) Path", layout=widgets.Layout(width="min-content")
         )
