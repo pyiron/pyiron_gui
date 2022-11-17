@@ -234,9 +234,7 @@ class HasGroupsBrowser(HasGroups):
             justify_content="flex-start",
         )
         self._control_layout = self._item_layout
-        self._control_bar_layout = widgets.Layout(
-            height="min-content"
-        )
+        self._control_bar_layout = widgets.Layout(height="min-content")
         self._color = ColorScheme(
             {
                 "control": "#FF0000",
@@ -371,9 +369,7 @@ class HasGroupsBrowser(HasGroups):
         if self._history_idx == len(self._history) - 1:
             forward_button.disabled = True
 
-        refresh_button = widgets.Button(
-            description="", icon="refresh", layout=layout
-        )
+        refresh_button = widgets.Button(description="", icon="refresh", layout=layout)
         refresh_button.on_click(self._click_refresh)
 
         return [back_button, forward_button, refresh_button]
@@ -629,10 +625,14 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
         min_control_bar_height = "35px"
         self.pathbox = widgets.HBox(
             layout=widgets.Layout(
-                width="100%", min_height=min_control_bar_height, justify_content="flex-start"
+                width="100%",
+                min_height=min_control_bar_height,
+                justify_content="flex-start",
             )
         )
-        self.optionbox = widgets.HBox(layout=widgets.Layout(min_height=min_control_bar_height))
+        self.optionbox = widgets.HBox(
+            layout=widgets.Layout(min_height=min_control_bar_height)
+        )
         self.path_string_box = widgets.Text(
             description="(rel) Path", layout=widgets.Layout(width="min-content")
         )
