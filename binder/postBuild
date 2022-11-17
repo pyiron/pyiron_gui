@@ -9,8 +9,10 @@ if [ -d "${HOME}/pyiron_gui" ]; then
     rm -r ${HOME}/binder \
     ${HOME}/.ci_support \
     ${HOME}/.github \
+    ${HOME}/build \
     ${HOME}/notebooks \
     ${HOME}/pyiron_gui \
+    ${HOME}/pyiron_gui.egg-info \
     ${HOME}/tests \
     ${HOME}/CODE_OF_CONDUCT.md \
     ${HOME}/LICENSE \
