@@ -6,5 +6,17 @@ if [ -d "notebooks" ]; then
     mv notebooks/* .
 fi
 if [ -d "${HOME}/pyiron_gui" ]; then
-    rm -r ${HOME}/binder ${HOME}/.ci_support ${HOME}/.github ${HOME}/pyiron_gui ${HOME}/tests ${HOME}/notebooks ${HOME}/LICENSE ${HOME}/MANIFEST.in ${HOME}/setup.cfg ${HOME}/setup.py ${HOME}/versioneer.py ${HOME}/README.rst ${HOME}/CODE_OF_CONDUCT.md
+    rm -r ${HOME}/binder \
+    ${HOME}/.ci_support \
+    ${HOME}/.github \
+    ${HOME}/pyiron_gui \
+    ${HOME}/tests \
+    ${HOME}/notebooks \
+    ${HOME}/LICENSE \
+    ${HOME}/MANIFEST.in \
+    ${HOME}/setup.cfg \
+    ${HOME}/setup.py \
+    ${HOME}/versioneer.py \
+    ${HOME}/README.rst \
+    ${HOME}/CODE_OF_CONDUCT.md
 fi
