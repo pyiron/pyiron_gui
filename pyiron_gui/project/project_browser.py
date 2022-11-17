@@ -626,10 +626,13 @@ class ProjectBrowser(HasGroupBrowserWithOutput):
             fix_path (bool): If True the path in the file system cannot be changed.
             show_files(bool): If True files (from project.list_files()) are displayed.
         """
+        min_control_bar_height = "35px"
         self.pathbox = widgets.HBox(
-            layout=widgets.Layout(width="100%", min_height="30px", justify_content="flex-start")
+            layout=widgets.Layout(
+                width="100%", min_height=min_control_bar_height, justify_content="flex-start"
+            )
         )
-        self.optionbox = widgets.HBox(layout=widgets.Layout(min_height="30px"))
+        self.optionbox = widgets.HBox(layout=widgets.Layout(min_height=min_control_bar_height))
         self.path_string_box = widgets.Text(
             description="(rel) Path", layout=widgets.Layout(width="min-content")
         )
