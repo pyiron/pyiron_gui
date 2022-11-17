@@ -350,6 +350,10 @@ class HasGroupsBrowser(HasGroups):
         self._history_idx += 1
         self._load_history()
 
+    @clickable
+    def _click_refresh(self):
+        self.refresh()
+
     def _gen_control_buttons(self, layout=None):
         if layout is None:
             layout = self._control_layout
@@ -366,7 +370,13 @@ class HasGroupsBrowser(HasGroups):
         forward_button.on_click(self._go_forward)
         if self._history_idx == len(self._history) - 1:
             forward_button.disabled = True
-        return [back_button, forward_button]
+
+        refresh_button = widgets.Button(
+            description="", icon="refresh", layout=layout
+        )
+        refresh_button.on_click(self._click_refresh)
+
+        return [back_button, forward_button, refresh_button]
 
     def _update_project(self, group_name):
         self.project = self.project[group_name]
