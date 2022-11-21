@@ -38,5 +38,6 @@ setup(
         'matplotlib==3.6.2',
         'numpy==1.23.4',
         'pandas==1.5.1',
-    ]
+    ],
+    cmdclass=versioneer.get_cmdclass(),
 )
