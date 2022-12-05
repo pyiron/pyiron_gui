@@ -1,7 +1,7 @@
 pyiron_gui
 ============
-.. image:: https://coveralls.io/repos/github/pyiron/pyiron_gui/badge.svg?branch=master
-    :target: https://coveralls.io/github/pyiron/pyiron_gui?branch=master
+.. image:: https://coveralls.io/repos/github/pyiron/pyiron_gui/badge.svg?branch=main
+    :target: https://coveralls.io/github/pyiron/pyiron_gui?branch=main
     :alt: Coverage Status
 
 .. image:: https://anaconda.org/conda-forge/pyiron_gui/badges/latest_release_date.svg
@@ -20,5 +20,5 @@ Getting started:
 Test pyiron with mybinder:
 
 .. image:: https://mybinder.org/badge_logo.svg
-     :target: https://mybinder.org/v2/gh/pyiron/pyiron_gui/master
+     :target: https://mybinder.org/v2/gh/pyiron/pyiron_gui/main
      :alt: mybinder
