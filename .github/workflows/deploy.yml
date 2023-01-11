@@ -1,10 +1,13 @@
+# This workflow is used to upload and deploy a new release to PyPi
+# Based on https://github.com/pypa/gh-action-pypi-publish
+
 name: PyPi Release
 
 on:
     push:
     pull_request:
+    workflow_dispatch:
 
-# based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,4 +32,4 @@ jobs:
       uses: pypa/gh-action-pypi-publish@master
       with:
         user: __token__
-        password: ${{ secrets.PYPI_TOKEN }}
+        password: ${{ secrets.pypi_password }}
