@@ -37,7 +37,7 @@ setup(
         'ipywidgets==7.7.1',
         'matplotlib==3.6.2',
         'numpy==1.24.1',
-        'pandas==1.5.2',
+        'pandas==1.5.3',
     ],
     cmdclass=versioneer.get_cmdclass(),
 )
