@@ -75,7 +75,6 @@ class AtomsWidget(ObjectWidget):
         self._box.children = tuple([self._header, self._output])
 
     def _init_option_widgets(self):
-
         self._option_widgets = {
             "camera": widgets.Dropdown(
                 options=["perspective", "orthographic"],
