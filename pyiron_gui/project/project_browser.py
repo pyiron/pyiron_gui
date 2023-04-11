@@ -36,7 +36,8 @@ __date__ = "Feb 02, 2021"
 class DisplayOutputGUI:
 
     """Display various kind of data in an appealing way using a ipywidgets.Output inside an ipywidgets.Vbox
-    The behavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display."""
+    The behavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display.
+    """
 
     def __init__(self, *args, **kwargs):
         self.box = widgets.VBox(*args, **kwargs)
@@ -585,7 +586,9 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
                 new_project2 = PyironWrapper(
                     new_project.to_object(), self.project, rel_path
                 )
-            except ValueError:  # to_object() (may?) fail with an ValueError for GenericParameters
+            except (
+                ValueError
+            ):  # to_object() (may?) fail with an ValueError for GenericParameters
                 pass
             else:
                 new_project = new_project2
