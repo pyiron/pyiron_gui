@@ -38,7 +38,7 @@ setup(
         'matplotlib==3.7.1',
         'nbconvert==7.3.1',
         'nbformat==5.8.0',
-        'numpy==1.24.2',
+        'numpy==1.24.3',
         'pandas==2.0.1',
     ],
     cmdclass=versioneer.get_cmdclass(),
