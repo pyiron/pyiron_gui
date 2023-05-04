@@ -1,6 +1,7 @@
 # coding: utf-8
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
+
 import ipywidgets as widgets
 
 __author__ = "Niklas Siemer"
@@ -22,3 +23,5 @@ def WrapingHBox(*args, **kwargs):
     box.layout.align_items = "stretch"
     box.layout.flex_flow = "row wrap"
     return box
+
+

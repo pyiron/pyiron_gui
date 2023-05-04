@@ -1,10 +1,14 @@
 # coding: utf-8
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
+import nbconvert
+import nbformat
+import os
 
 import ipywidgets as widgets
 import numpy as np
-from IPython.core.display import display
+import pandas
+from IPython.core.display import display, HTML
 from matplotlib import pyplot as plt
 
 __author__ = "Niklas Siemer"
@@ -17,6 +21,10 @@ __maintainer__ = "Niklas Siemer"
 __email__ = "siemer@mpie.de"
 __status__ = "development"
 __date__ = "Sep 30, 2021"
+
+from pyiron_base import FileDataTemplate, HasGroups, FileData
+from pyiron_gui.utils.decorators import clickable
+from pyiron_gui.wrapper.wrapper import BaseWrapper, PyironWrapper
 
 
 class ObjectWidget:
@@ -259,6 +267,31 @@ class MurnaghanWidget(ObjectWidget):
         self._box.children = tuple([self._header, self._output])
 
 
+class FileDataWidget(ObjectWidget):
+    def __init__(self, file_data):
+        super().__init__(file_data)
+        self.mode = 'meta'
+        self._header = widgets.HBox()
+        self._output = DisplayOutputGUI()
+        self._show_data_button = widgets.Button(description='Show data')
+        self._show_data_button.on_click(self._show_data)
+        self._show_metadata_button = widgets.Button(description='Show metadata')
+        self._show_metadata_button.on_click(self._show_metadata)
+
+    @clickable
+    def _show_data(self):
+        self._output.display(self._obj.data)
+        self._header.children = (self._show_metadata_button, )
+
+    @clickable
+    def _show_metadata(self):
+        self._output.display(self._obj.metadata)
+        self._header.children = (self._show_data_button)
+
+    def refresh(self):
+        self._box.children = tuple([self._header, self._output])
+
+
 class NumpyWidget(ObjectWidget):
     def __init__(self, numpy_array):
         super().__init__(numpy_array)
@@ -405,3 +438,114 @@ class NumpyWidget(ObjectWidget):
         self._output.clear_output()
         with self._output:
             display(self._ax.figure)
+
+
+class DisplayOutputGUI:
+
+    """Display various kind of data in an appealing way using a ipywidgets.Output inside an ipywidgets.Vbox
+    The behavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.box = widgets.VBox(*args, **kwargs)
+        self.output = widgets.Output(layout=widgets.Layout(width="99%"))
+        self._display_obj = None
+        self._debug = False
+        self.refresh()
+
+    def refresh(self):
+        self.box.children = (self.output,)
+
+    def __enter__(self):
+        """Use context manager on the widgets.Output widget"""
+        self.refresh()
+        return self.output.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Use context manager on the widgets.Output widget"""
+        self.output.__exit__(exc_type, exc_val, exc_tb)
+
+    def __getattr__(self, item):
+        """Forward unknown attributes to the widgets.Output widget"""
+        return self.output.__getattribute__(item)
+
+    def clear_output(self, *args, **kwargs):
+        self.output.clear_output(*args, **kwargs)
+        self.refresh()
+
+    def display(self, obj, default_output=None, _has_groups_callback=None):
+        if isinstance(obj, BaseWrapper):
+            self.display(obj.gui, default_output=default_output)
+        elif isinstance(obj, tuple(PyironWrapper.registry.keys())[1:]):
+            self.display(PyironWrapper(obj, project=None))
+        elif isinstance(obj, np.ndarray):
+            self.display(NumpyWidget(obj), default_output=default_output)
+        elif isinstance(obj, FileDataTemplate):
+            self.display(FileDataWidget(obj))
+        elif isinstance(obj, HasGroups) and _has_groups_callback is not None:
+            _has_groups_callback(obj)
+        else:
+            self._display_obj = obj
+            self._display(default_output)
+
+    def _display(self, default_output):
+        if isinstance(self._display_obj, widgets.DOMWidget):
+            self.box.children = (self._display_obj,)
+        elif isinstance(self._display_obj, ObjectWidget):
+            self.box.children = (self._display_obj.gui,)
+        else:
+            with self.output:
+                if self._display_obj is None and default_output is None:
+                    raise TypeError("Given 'obj' is of 'NoneType'.")
+                elif self._display_obj is None:
+                    print(default_output)
+                else:
+                    plt.ioff()
+                    display(self._output_conv())
+
+    def _output_conv(self):
+        obj = self._display_obj
+
+        eol = os.linesep
+        if self._debug:
+            print("node: ", type(obj))
+
+        if hasattr(obj, "_repr_html_"):
+            return obj  # ._repr_html_()
+        elif isinstance(obj, FileData):
+            return obj.data
+        elif isinstance(obj, str):
+            return obj
+        elif isinstance(obj, nbformat.notebooknode.NotebookNode):
+            html_exporter = nbconvert.HTMLExporter()
+            # html_exporter.template_name = "basic"
+            html_exporter.template_name = "classic"
+            (html_output, resources) = html_exporter.from_notebook_node(obj)
+            return HTML(html_output)
+        elif isinstance(obj, dict):
+            dic = {"": list(obj.keys()), " ": list(obj.values())}
+            return pandas.DataFrame(dic)
+        elif isinstance(obj, (int, float)):
+            return str(obj)
+        elif isinstance(obj, list) and all([isinstance(el, str) for el in obj]):
+            max_length = 2000  # performance of widget above is extremely poor
+            if len(obj) < max_length:
+                return str("".join(obj))
+            else:
+                return str(
+                    "".join(obj[:max_length])
+                    + eol
+                    + " .... file too long: skipped ...."
+                )
+        elif isinstance(obj, list):
+            return pandas.DataFrame(obj, columns=["list"])
+        elif str(type(obj)).split(".")[0] == "<class 'PIL":
+            try:
+                data_cp = obj.copy()
+                data_cp.thumbnail((800, 800))
+                data_cp = data_cp.convert("RGB")
+            except:
+                data_cp = obj
+            return data_cp
+        else:
+            return obj
