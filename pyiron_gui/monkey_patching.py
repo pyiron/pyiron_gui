@@ -9,6 +9,8 @@ from typing import Union
 from pyiron_gui.project.project_browser import (
     ProjectBrowser,
     HasGroupsBrowser,
+    HasGroupsBrowserWithHistoryPath,
+    HasGroupBrowserWithOutput,
     DataContainerGUI,
 )
 from pyiron_base.interfaces.has_groups import HasGroups
@@ -119,9 +121,19 @@ safe_monkey_patch(
 )
 
 
-def _has_groups_gui(self, box=None, refresh=False):
+def _has_groups_gui(self, box=None, refresh=False, flavor='compact'):
     if self._has_groups_browser is None or refresh:
-        self._has_groups_browser = HasGroupsBrowser(self, box=box)
+        if flavor == 'compact':
+            self._has_groups_browser = HasGroupsBrowser(self, box=box)
+        elif flavor == 'output':
+            self._has_groups_browser = HasGroupBrowserWithOutput(self, box=box)
+        elif flavor == 'path':
+            self._has_groups_browser = HasGroupsBrowserWithHistoryPath(self, box=box)
+        elif flavor == 'output_path':
+            self._has_groups_browser = DataContainerGUI(self, box=box)
+        else:
+            raise ValueError(flavor)
+
     return self._has_groups_browser
 
 

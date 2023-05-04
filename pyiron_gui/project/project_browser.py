@@ -13,7 +13,7 @@ import pandas
 from IPython.core.display import display, HTML
 from traitlets import TraitError
 
-from pyiron_base import Project as BaseProject
+from pyiron_base import Project as BaseProject, FileDataTemplate
 from pyiron_base import HasGroups
 from pyiron_base import FileData
 from pyiron_gui.widgets.widgets import WrapingHBox
@@ -66,13 +66,17 @@ class DisplayOutputGUI:
         self.output.clear_output(*args, **kwargs)
         self.refresh()
 
-    def display(self, obj, default_output=None):
+    def display(self, obj, default_output=None, _has_groups_callback=None):
         if isinstance(obj, BaseWrapper):
             self.display(obj.gui, default_output=default_output)
         elif isinstance(obj, tuple(PyironWrapper.registry.keys())[1:]):
             self.display(PyironWrapper(obj, project=None))
         elif isinstance(obj, np.ndarray):
             self.display(NumpyWidget(obj), default_output=default_output)
+        elif isinstance(obj, FileDataTemplate):
+            self.display(obj.data)
+        elif isinstance(obj, HasGroups) and _has_groups_callback is not None:
+            _has_groups_callback(obj)
         else:
             self._display_obj = obj
             self._display(default_output)
@@ -310,6 +314,9 @@ class HasGroupsBrowser(HasGroups):
 
     @project.setter
     def project(self, new_project):
+        self._project_setter(new_project)
+
+    def _project_setter(self, new_project):
         if self._fix_position:
             raise RuntimeError("Not allowed to change the current group.")
         if not isinstance(new_project, HasGroups):
@@ -413,6 +420,9 @@ class HasGroupsBrowser(HasGroups):
             except (KeyError, IOError, ValueError):
                 self._clicked_nodes.remove(node)
                 self._data = None
+            else:
+                if isinstance(self._data, HasGroups):
+                    self._update_project(node)
 
     def _gen_node_buttons(self, nodes=None):
         if nodes is None:
@@ -478,12 +488,7 @@ class HasGroupsBrowserWithHistoryPath(HasGroupsBrowser):
         self._color.add_colors({"path": "#DDDDAA", "home": "#999999"})
         self._path_list = ["/"]
 
-    @property
-    def project(self):
-        return self._project
-
-    @project.setter
-    def project(self, new_project):
+    def _project_setter(self, new_project):
         if self._fix_position:
             raise RuntimeError("Not allowed to change the current group.")
         if not isinstance(new_project, HasGroups):
@@ -570,7 +575,7 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
 
     def _gen_box_children(self):
         if isinstance(self.project, BaseWrapper):
-            self._output.display(self.project)
+            self._output.display(self.project, _has_groups_callback=self._project_setter)
 
         self._update_body_box(self._body_box)
         body = widgets.HBox(
@@ -603,7 +608,7 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
         self._clear_output()
         super()._select_node(node)
         if node in self._clicked_nodes:
-            self._output.display(self.data, default_output=[node])
+            self._output.display(self.data, default_output=[node], _has_groups_callback=self._project_setter)
 
 
 class ProjectBrowser(HasGroupBrowserWithOutput):
