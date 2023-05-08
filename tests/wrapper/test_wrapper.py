@@ -15,8 +15,8 @@ import numpy as np
 from pyiron_atomistics import Atoms
 from pyiron_atomistics.atomistics.master.murnaghan import Murnaghan
 from pyiron_base._tests import TestWithProject, TestWithCleanProject
-from pyiron_gui.wrapper.widgets import AtomsWidget, MurnaghanWidget, NumpyWidget, DisplayOutputGUI
-from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper, AtomsWrapper, MurnaghanWrapper
+from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper, AtomsWrapper, MurnaghanWrapper, DisplayOutputGUI, \
+    AtomsWidget, MurnaghanWidget, NumpyWidget
 
 
 class TestPyironWrapper(TestWithProject):

@@ -11,8 +11,7 @@ from traitlets import TraitError
 from pyiron_base import Project as BaseProject
 from pyiron_base import HasGroups
 from pyiron_gui.widgets.widgets import WrapingHBox
-from pyiron_gui.wrapper.widgets import DisplayOutputGUI
-from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper
+from pyiron_gui.wrapper.wrapper import PyironWrapper, BaseWrapper, DisplayOutputGUI
 from pyiron_gui.utils.decorators import busy_check, clickable
 
 __author__ = "Niklas Siemer"
