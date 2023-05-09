@@ -174,7 +174,7 @@ class DisplayOutputGUI:
         elif isinstance(obj, np.ndarray):
             self.display(NumpyWidget(obj), default_output=default_output)
         elif isinstance(obj, FileDataTemplate):
-            self.display(FileDataWidget(obj, self))
+            self.display(FileDataWidget(obj))
         elif isinstance(obj, HasGroups) and _has_groups_callback is not None:
             _has_groups_callback(obj)
         else:
@@ -243,11 +243,14 @@ class DisplayOutputGUI:
         else:
             return obj
 
+    def _ipython_display_(self):
+        display(self.box)
+
 
 class ObjectWidget:
-    def __init__(self, obj, output_widget=None):
+    def __init__(self, obj):
         self._obj = obj
-        self._output = widgets.Output() if output_widget is None else output_widget
+        self._output = widgets.Output()
         self._box = widgets.VBox()
 
     def refresh(self):
@@ -267,8 +270,8 @@ class ObjectWidget:
 
 
 class AtomsWidget(ObjectWidget):
-    def __init__(self, atoms_object, output_widget=None):
-        super().__init__(atoms_object, output_widget)
+    def __init__(self, atoms_object):
+        super().__init__(atoms_object)
         self._ngl_widget = None
         self._apply_button = widgets.Button(description="Apply")
         self._apply_button.on_click(self._on_click_apply_button)
@@ -335,6 +338,7 @@ class AtomsWidget(ObjectWidget):
                 description_tooltip="Reset view if checked",
             ),
         }
+        self.refresh()
 
     @property
     def _option_representation(self):
@@ -383,8 +387,8 @@ class AtomsWidget(ObjectWidget):
 
 
 class MurnaghanWidget(ObjectWidget):
-    def __init__(self, murnaghan_object, output_widget=None):
-        super().__init__(murnaghan_object, output_widget)
+    def __init__(self, murnaghan_object):
+        super().__init__(murnaghan_object)
         self._option_widgets = None
         self._header = widgets.HBox()
         self._apply_button = widgets.Button(description="Apply")
@@ -485,27 +489,36 @@ class MurnaghanWidget(ObjectWidget):
 
 
 class FileDataWidget(ObjectWidget):
-    def __init__(self, file_data, output_widget=None):
-        super().__init__(file_data, output_widget)
+    def __init__(self, file_data):
+        super().__init__(file_data)
+        self._output = DisplayOutputGUI()
         self.mode = "meta"
-        self._header = widgets.HBox()
         self._show_data_button = widgets.Button(description="Show data")
         self._show_data_button.on_click(self._show_data)
         self._show_metadata_button = widgets.Button(description="Show metadata")
         self._show_metadata_button.on_click(self._show_metadata)
+        self._show_metadata_button.disabled = True
+        self._header = widgets.HBox(
+            [self._show_metadata_button, self._show_data_button]
+        )
+        self.refresh()
 
     @clickable
     def _show_data(self):
+        self._output.clear_output()
         self._output.display(self._obj.data)
-        self._header.children = (self._show_metadata_button,)
+        self._show_data_button.disabled = True
+        self._show_metadata_button.disabled = False
 
     @clickable
     def _show_metadata(self):
+        self._output.clear_output()
         self._output.display(self._obj.metadata)
-        self._header.children = self._show_data_button
+        self._show_data_button.disabled = False
+        self._show_metadata_button.disabled = True
 
     def refresh(self):
-        self._box.children = tuple([self._header, self._output])
+        self._box.children = tuple([self._header, self._output.box])
 
 
 class NumpyWidget(ObjectWidget):
