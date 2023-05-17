@@ -530,7 +530,7 @@ class FileDataWidget(ObjectWidget):
     @clickable
     def _show_data(self):
         self._output.clear_output()
-        self._output.display(self._data_)
+        self._output.display(self._data)
         self._show_data_button.disabled = True
         self._show_metadata_button.disabled = False
 
