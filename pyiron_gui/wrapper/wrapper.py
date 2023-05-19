@@ -509,9 +509,11 @@ class FileDataWidget(ObjectWidget):
         self._data_has_groups = False
         self._auto_callback = _auto_callback
 
-    @clickable
-    def _load_and_callback(self):
-        self._callback(self._data_)
+    def _load_and_callback(self, button: widgets.Button =None):
+        if callable(self._callback):
+            self._callback(self._data)
+        elif button is not None:
+            button.disabled = True
 
     @property
     def _data(self):
