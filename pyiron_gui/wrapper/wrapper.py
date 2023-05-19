@@ -509,7 +509,7 @@ class FileDataWidget(ObjectWidget):
         self._data_has_groups = False
         self._auto_callback = _auto_callback
 
-    def _load_and_callback(self, button: widgets.Button =None):
+    def _load_and_callback(self, button: widgets.Button = None):
         if callable(self._callback):
             self._callback(self._data)
         elif button is not None:
@@ -525,8 +525,10 @@ class FileDataWidget(ObjectWidget):
                 self._callback(self._data_)
             elif self._data_has_groups:
                 load_button = widgets.Button(description="Load job")
-                load_button.on_click(self._load_and_callback, True)
-                self._header.children = tuple([self._show_metadata_button, self._show_data_button, load_button])
+                load_button.on_click(self._load_and_callback, remove=True)
+                self._header.children = tuple(
+                    [self._show_metadata_button, self._show_data_button, load_button]
+                )
         return self._data_
 
     @clickable
@@ -703,8 +705,10 @@ class DataExplorer:
         self._body = widgets.VBox()
         self.debug = debug
         self._output = widgets.Output()
-        self._box = widgets.VBox([self._header, self._body], width='90%')
-        self._column_select = widgets.SelectMultiple(description='columns', options=self.df_keys)
+        self._box = widgets.VBox([self._header, self._body], width="90%")
+        self._column_select = widgets.SelectMultiple(
+            description="columns", options=self.df_keys
+        )
         if initial_keys is not None:
             self._column_select.value = initial_keys
         else:
@@ -738,31 +742,50 @@ class DataExplorer:
     def _update_key_dependent_buttons(self, box=None):
         if box is None:
             box = self._key_dependent_box
-        self._name_select = widgets.Dropdown(description='Name', options=self._displayed_df_keys)
-        self._color_select = widgets.Dropdown(description='Color', options=self._displayed_df_keys)
-        if 'T' in self._displayed_df_keys:
-            self._color_select.value = 'T'
-        self._select = widgets.SelectMultiple(description='plot', tooltip="Choose 3!", options=self._displayed_df_keys)
-        wt_pct_keys = [info for info in self._displayed_df_keys if info.startswith('wt.%')]
+        self._name_select = widgets.Dropdown(
+            description="Name", options=self._displayed_df_keys
+        )
+        self._color_select = widgets.Dropdown(
+            description="Color", options=self._displayed_df_keys
+        )
+        if "T" in self._displayed_df_keys:
+            self._color_select.value = "T"
+        self._select = widgets.SelectMultiple(
+            description="plot", tooltip="Choose 3!", options=self._displayed_df_keys
+        )
+        wt_pct_keys = [
+            info for info in self._displayed_df_keys if info.startswith("wt.%")
+        ]
         if len(wt_pct_keys) >= 3:
             self._select.value = wt_pct_keys[0:3]
 
-        self._info_select = widgets.SelectMultiple(description='info', options=self._displayed_df_keys)
-        box.children = tuple([widgets.VBox([self._name_select, self._color_select]), self._select])
+        self._info_select = widgets.SelectMultiple(
+            description="info", options=self._displayed_df_keys
+        )
+        box.children = tuple(
+            [widgets.VBox([self._name_select, self._color_select]), self._select]
+        )
 
     def _init_buttons(self):
-        df_button = widgets.Button(description='Data')
+        df_button = widgets.Button(description="Data")
         df_button.on_click(self._show_df)
-        plot_button = widgets.Button(description='Ternary Plot')
+        plot_button = widgets.Button(description="Ternary Plot")
         plot_button.on_click(self._click_plot)
-        self._key_dependent_box = widgets.HBox(width='50%')
+        self._key_dependent_box = widgets.HBox(width="50%")
         self._update_key_dependent_buttons(self._key_dependent_box)
 
-        self._header.children = tuple([widgets.HBox(
-                                            [df_button, self._column_select, plot_button,
-                                            self._key_dependent_box
-                                            ])
-                                      ])
+        self._header.children = tuple(
+            [
+                widgets.HBox(
+                    [
+                        df_button,
+                        self._column_select,
+                        plot_button,
+                        self._key_dependent_box,
+                    ]
+                )
+            ]
+        )
 
     def _show_df(self, _=None):
         self._body.children = tuple([self._interactive_df])
@@ -772,7 +795,7 @@ class DataExplorer:
         return self._interactive_df.get_visible_data()
 
     def _click_plot(self, _=None):
-        #a = px.scatter_ternary(self._current_i_df, a='wt.%Mg', b='wt.%Ca', c='wt.%Al',
+        # a = px.scatter_ternary(self._current_i_df, a='wt.%Mg', b='wt.%Ca', c='wt.%Al',
         #                       color=self._current_i_df['T'].to_list(),
         #                       #color='T',
         #                       hover_name=self._current_i_df['ID'],
@@ -780,29 +803,46 @@ class DataExplorer:
         if len(self._select.value) != 3:
             self._body.children = tuple([widgets.HTML("Select exactly 3 quantities!")])
             return
-        info_keys = [info for info in self._displayed_df_keys if info.startswith('wt.%')]
+        info_keys = [
+            info for info in self._displayed_df_keys if info.startswith("wt.%")
+        ]
         a, b, c = self._select.value[0:3]
         try:
-            tern = px.scatter_ternary(self._current_i_df, a=a, b=b, c=c,
-                                      color=self._current_i_df[self._color_select.value].to_list(),
-                                      labels={'color': self._color_select.value},
-                                      size=np.ones(len(self._current_i_df)) * 5,
-                                      hover_name=self._current_i_df[self._name_select.value],
-                                      hover_data=self._current_i_df[info_keys]
-                                      )
+            tern = px.scatter_ternary(
+                self._current_i_df,
+                a=a,
+                b=b,
+                c=c,
+                color=self._current_i_df[self._color_select.value].to_list(),
+                labels={"color": self._color_select.value},
+                size=np.ones(len(self._current_i_df)) * 5,
+                hover_name=self._current_i_df[self._name_select.value],
+                hover_data=self._current_i_df[info_keys],
+            )
         except Exception as e:
             error_msg = f"Error occurred: {e.__class__.__name__}({e})"
             if self.debug:
-                line_sep = '\n  '
-                error_msg += '<pre>'
+                line_sep = "\n  "
+                error_msg += "<pre>"
                 error_msg += f"Debug info (suppress with debug=False):" + line_sep
                 error_msg += f"Plot columns {a}, {b}, {c}" + line_sep
-                error_msg += f"Use column {self._name_select.value} as the name," + line_sep
-                error_msg += f"           {self._color_select.value} for the color scheme" + line_sep
-                error_msg += f"           {' ,'.join(info_keys)} for additional hover information." + line_sep
+                error_msg += (
+                    f"Use column {self._name_select.value} as the name," + line_sep
+                )
+                error_msg += (
+                    f"           {self._color_select.value} for the color scheme"
+                    + line_sep
+                )
+                error_msg += (
+                    f"           {' ,'.join(info_keys)} for additional hover information."
+                    + line_sep
+                )
                 error_msg += f"Pandas frame 'used':" + line_sep
-                error_msg += '</pre> '
-                error_msg += self._current_i_df[[a, b, c, self._name_select.value, self._color_select.value] + info_keys].to_html()
+                error_msg += "</pre> "
+                error_msg += self._current_i_df[
+                    [a, b, c, self._name_select.value, self._color_select.value]
+                    + info_keys
+                ].to_html()
             self._body.children = tuple([widgets.HTML(error_msg)])
         else:
             self._body.children = tuple([go.FigureWidget(tern)])
