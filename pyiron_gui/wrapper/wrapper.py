@@ -525,7 +525,7 @@ class FileDataWidget(ObjectWidget):
                 self._callback(self._data_)
             elif self._data_has_groups:
                 load_button = widgets.Button(description="Load job")
-                load_button.on_click(self._load_and_callback, remove=True)
+                load_button.on_click(self._load_and_callback)
                 self._header.children = tuple(
                     [self._show_metadata_button, self._show_data_button, load_button]
                 )
