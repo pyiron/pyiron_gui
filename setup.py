@@ -37,7 +37,7 @@ setup(
         'ipywidgets==8.0.6',
         'matplotlib==3.7.1',
         'nbconvert==7.4.0',
-        'nbformat==5.8.0',
+        'nbformat==5.9.0',
         'numpy==1.24.3',
         'pandas==2.0.2',
     ],
