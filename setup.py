@@ -39,7 +39,7 @@ setup(
         'nbconvert==7.4.0',
         'nbformat==5.9.0',
         'numpy==1.24.3',
-        'pandas==2.0.2',
+        'pandas==2.0.3',
     ],
     cmdclass=versioneer.get_cmdclass(),
 )
