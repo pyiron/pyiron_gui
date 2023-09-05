@@ -36,7 +36,7 @@ setup(
         'pyiron_atomistics==0.3.2',
         'ipywidgets==8.1.0',
         'matplotlib==3.7.2',
-        'nbconvert==7.7.4',
+        'nbconvert==7.8.0',
         'nbformat==5.9.2',
         'numpy==1.24.3',
         'pandas==2.1.0',
