@@ -5,9 +5,9 @@ dependencies:
 - coverage
 - codacy-coverage
 - ipywidgets =8.1.1
-- pyiron_base =0.6.6
-- pyiron_atomistics =0.3.3
-- numpy =1.24.3
+- pyiron_base =0.6.7
+- pyiron_atomistics =0.3.4
+- numpy =1.26.0
 - pandas =2.1.1
 - matplotlib-base =3.8.0
 - nbconvert =7.8.0
