@@ -8,7 +8,7 @@ dependencies:
 - pyiron_base =0.6.8
 - pyiron_atomistics =0.3.5
 - numpy =1.26.0
-- pandas =2.1.1
+- pandas =2.1.2
 - matplotlib-base =3.8.0
 - nbconvert =7.9.2
 - nbformat =5.9.2
