@@ -7,7 +7,7 @@ dependencies:
 - ipywidgets =8.1.1
 - pyiron_base =0.6.8
 - pyiron_atomistics =0.3.5
-- numpy =1.26.0
+- numpy =1.26.1
 - pandas =2.1.2
 - matplotlib-base =3.8.1
 - nbconvert =7.11.0
