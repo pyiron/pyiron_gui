@@ -39,7 +39,6 @@ def _(py_obj: Murnaghan, project, rel_path=""):
 
 
 class BaseWrapper(HasGroups):
-
     """Simple wrapper for pyiron objects which extends for basic pyiron functionality (list_nodes ...)"""
 
     def __init__(self, pyi_obj, project, rel_path=""):
