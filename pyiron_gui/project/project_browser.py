@@ -34,7 +34,6 @@ __date__ = "Feb 02, 2021"
 
 
 class DisplayOutputGUI:
-
     """Display various kind of data in an appealing way using a ipywidgets.Output inside an ipywidgets.Vbox
     The behavior is very similar to standard ipywidgets.Output except one has to pass cls.box to get a display.
     """
@@ -607,7 +606,6 @@ class HasGroupBrowserWithOutput(HasGroupsBrowser):
 
 
 class ProjectBrowser(HasGroupBrowserWithOutput):
-
     """
     Project Browser Widget
 
