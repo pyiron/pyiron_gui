@@ -4,7 +4,7 @@ dependencies:
 - coveralls
 - coverage
 - codacy-coverage
-- ipywidgets =8.1.1
+- ipywidgets =8.1.2
 - pyiron_base =0.7.5
 - pyiron_atomistics =0.4.14
 - maggma =0.60.2

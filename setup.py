@@ -34,7 +34,7 @@ setup(
     install_requires=[
         'pyiron_base==0.7.5',
         'pyiron_atomistics==0.4.14',
-        'ipywidgets==8.1.1',
+        'ipywidgets==8.1.2',
         'matplotlib==3.8.2',
         'nbconvert==7.16.0',
         'nbformat==5.9.2',
