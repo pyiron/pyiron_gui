@@ -1,7 +1,6 @@
 channels:
 - conda-forge
 dependencies:
-- coveralls
 - coverage
 - codacy-coverage
 - ipywidgets =8.1.2
