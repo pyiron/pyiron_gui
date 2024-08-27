@@ -3,7 +3,7 @@ channels:
 dependencies:
 - coverage
 - codacy-coverage
-- ipywidgets =8.1.3
+- ipywidgets =8.1.5
 - pyiron_base =0.9.12
 - pyiron_atomistics =0.6.11
 - maggma =0.60.2
