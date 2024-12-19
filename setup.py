@@ -32,8 +32,8 @@ setup(
     keywords='pyiron',
     packages=find_packages(exclude=["*tests*", "*docs*", "*binder*", "*conda*", "*notebooks*", "*.ci_support*"]),
     install_requires=[
-        'pyiron_base==0.10.9',
-        'pyiron_atomistics==0.6.18',
+        'pyiron_base==0.10.10',
+        'pyiron_atomistics==0.6.19',
         'ipywidgets==8.1.5',
         'matplotlib==3.10.0',
         'nbconvert==7.16.4',
