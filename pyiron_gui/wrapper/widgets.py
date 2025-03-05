@@ -4,7 +4,7 @@
 
 import ipywidgets as widgets
 import numpy as np
-from IPython.core.display import display
+from IPython.display import display
 from matplotlib import pyplot as plt
 
 __author__ = "Niklas Siemer"
