@@ -2,7 +2,7 @@
 # Copyright (c) Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
 # Distributed under the terms of "New BSD License", see the LICENSE file.
 
-"""Adding gui functionality to pyiron classes via monkey patching on import of pyiron_gui. """
+"""Adding gui functionality to pyiron classes via monkey patching on import of pyiron_gui."""
 import warnings
 from typing import Union
 
