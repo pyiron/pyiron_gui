@@ -10,7 +10,7 @@ import nbconvert
 import nbformat
 import numpy as np
 import pandas
-from IPython.core.display import display, HTML
+from IPython.display import display, HTML
 from traitlets import TraitError
 
 from pyiron_base import Project as BaseProject
