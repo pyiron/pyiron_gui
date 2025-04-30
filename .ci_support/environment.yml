@@ -5,7 +5,7 @@ dependencies:
 - codacy-coverage
 - ipywidgets =8.1.6
 - pyiron_base =0.11.12
-- pyiron_atomistics =0.7.5
+- pyiron_atomistics =0.7.6
 - maggma =0.60.2
 - numpy =1.26.4
 - pandas =2.2.3
